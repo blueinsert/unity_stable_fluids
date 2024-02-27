@@ -27,23 +27,13 @@ Shader "bluebean/StableFluids/LinSolverShader"
 	{
 		float2 uv : TEXCOORD0;
 		float4 vertex : SV_POSITION;
-		float2 vL : TEXCOORD1;
-		float2 vR : TEXCOORD2;
-		float2 vT : TEXCOORD3;
-		float2 vB : TEXCOORD4;
 	};
-
-	float2 _texelSize;
 
 	v2f vert(appdata v)
 	{
 		v2f o;
 		o.vertex = UnityObjectToClipPos(v.vertex);
 		o.uv = v.uv;
-		o.vL = v.uv - float2(_texelSize.x, 0);
-		o.vR = v.uv + float2(_texelSize.x, 0);
-		o.vT = v.uv + float2(0, _texelSize.y);
-		o.vB = v.uv - float2(0, _texelSize.y);
 		return o;
 	}
 
@@ -51,14 +41,15 @@ Shader "bluebean/StableFluids/LinSolverShader"
 			sampler2D _Right;
 			float _a;
 			float _c;
+			float2 _texelSize;
 
 			float4 frag(v2f i) : SV_Target
 			{
 				float4 b = tex2Dlod(_Right, float4(i.uv,0,0));
-				float4 left = tex2Dlod(_MainTex, float4(i.vL, 0, 0));
-				float4 right = tex2Dlod(_MainTex, float4(i.vR, 0, 0));
-				float4 top = tex2Dlod(_MainTex, float4(i.vT, 0, 0));
-				float4 bottom = tex2Dlod(_MainTex, float4(i.vB, 0, 0));
+				float4 left = tex2Dlod(_MainTex, float4(i.uv-float2(_texelSize.x,0), 0, 0));
+				float4 right = tex2Dlod(_MainTex, float4(i.uv + float2(_texelSize.x, 0), 0, 0));
+				float4 top = tex2Dlod(_MainTex, float4(i.uv + float2(0, _texelSize.y), 0, 0));
+				float4 bottom = tex2Dlod(_MainTex, float4(i.uv - float2(0, _texelSize.y), 0, 0));
 				float4 col = (b + _a * (left + right + top + bottom)) / (_c);
 			    return col;
 		    }

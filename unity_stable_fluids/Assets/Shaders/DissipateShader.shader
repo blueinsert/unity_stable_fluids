@@ -53,12 +53,16 @@ Shader "bluebean/StableFluids/DissipateShader"
 
 			float4 frag(v2f i) : SV_Target
 			{
-				float4 col = tex2Dlod(_MainTex, float4(i.uv,0,0));
+				//float4 col = tex2Dlod(_MainTex, float4(i.uv,0,0));
+				float4 col = tex2D(_MainTex,i.uv);
 				//_dissipation = 5.0;
 				//_dt = 0.033;
 			float decay = 1.0/( 1.0 + _dissipation * _dt);
-			//decay = 0.1;
+			//decay = 1.0 - _dt*0.1;
 			col.rgb = col.rgb * decay;
+			//if (max(col.r, max(col.g, col.b)) < 0.01f) {
+			//	col.rgb = float3(0, 0, 0);
+			//}
 			return col;
 		}
 		ENDCG

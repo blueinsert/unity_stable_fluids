@@ -431,8 +431,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 716941477b1ea6d449d78e90a8b56653, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_velocity: {fileID: 8400000, guid: 92158c5269c8e2a48bc1528e70dd9a6f, type: 2}
-  m_dye: {fileID: 8400000, guid: 51cf09982ca92e846a265e739aa5655d, type: 2}
+  m_velocity: {fileID: 0}
+  m_dye: {fileID: 0}
   m_temp: {fileID: 0}
   m_temp2: {fileID: 0}
   m_addSourceMaterial: {fileID: 2100000, guid: 5047aa96d71514e48a88fa991781a618, type: 2}
