@@ -1,0 +1,7 @@
+Temp
+Library
+obj
+*.vs
+bin
+Release/
+Logs/
