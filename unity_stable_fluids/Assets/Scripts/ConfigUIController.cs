@@ -1,18 +1,23 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class ConfigUIController : MonoBehaviour
 {
-    public Slider m_visocitySlider;
-    public InputField m_visocityInputField;
+    public Slider m_dyeSlider;
+    public InputField m_dyeInputField;
 
     // Start is called before the first frame update
     void Start()
     {
-        m_visocitySlider.onValueChanged.AddListener(OnViscositySliderValueChanged);
-        m_visocityInputField.onValueChanged.AddListener(OnViscosityInputFieldValueChanged);
+        Init();
+        m_dyeSlider.onValueChanged.AddListener(OnDyeSliderValueChanged);
+        m_dyeInputField.onValueChanged.AddListener(OnDyeInputFieldValueChanged);
+    }
+
+    private void Init()
+    {
+        m_dyeSlider.value = FluidSimulation.Instance.m_config.DyeDiffuse / FluidConfig.DiffuseRange;
+        m_dyeInputField.text = m_dyeSlider.value.ToString();
     }
 
     // Update is called once per frame
@@ -22,14 +27,14 @@ public class ConfigUIController : MonoBehaviour
     }
 
     #region eventListener
-    private void OnViscositySliderValueChanged(float value)
+    private void OnDyeSliderValueChanged(float value)
     {
         value = Mathf.Clamp(value, 0, 1);
-        m_visocityInputField.text = value.ToString();
-        FluidSimulation.Instance.m_config.DyeViscosity = value * 1f;
+        m_dyeInputField.text = value.ToString();
+        FluidSimulation.Instance.m_config.DyeDiffuse = value * FluidConfig.DiffuseRange;
     }
 
-    private void OnViscosityInputFieldValueChanged(string value)
+    private void OnDyeInputFieldValueChanged(string value)
     {
 
     }

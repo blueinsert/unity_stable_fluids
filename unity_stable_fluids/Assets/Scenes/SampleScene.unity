@@ -941,7 +941,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Viscosity
+  m_Text: Dye Diffuse
 --- !u!222 &856470938
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1127,7 +1127,7 @@ GameObject:
   - component: {fileID: 903333521}
   - component: {fileID: 903333520}
   m_Layer: 5
-  m_Name: Viscosity
+  m_Name: DyeDiffuse
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1429,8 +1429,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 119891c1b550bda418a95e56ebc4a4ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_visocitySlider: {fileID: 900504246}
-  m_visocityInputField: {fileID: 471234439}
+  m_dyeSlider: {fileID: 900504246}
+  m_dyeInputField: {fileID: 471234439}
 --- !u!1 &1684400508
 GameObject:
   m_ObjectHideFlags: 0

@@ -7,9 +7,13 @@ using static UnityEngine.GraphicsBuffer;
 
 public class FluidConfig
 {
+    public const float DiffuseRange = 0.245f;
+
     public int SimResolution = 512;
     public float SplatForce = 6000f;
-    public float DyeViscosity = 0.0f;
+
+    public float DyeDiffuse = 0.23f;
+    public float VelocityDiffuse = 0.20f;
 }
 
 public class PointerData
@@ -66,12 +70,6 @@ public class FluidSimulation : MonoBehaviour
 
     private void Awake()
     {
-        Instance = this;
-    }
-
-    // Start is called before the first frame update
-    void Start()
-    {
         Application.targetFrameRate = 60;
         m_config = new FluidConfig();
         PrepareFrameBuffers();
@@ -85,6 +83,13 @@ public class FluidSimulation : MonoBehaviour
         m_output.material = m_displayMaterial;
         m_outputIndex = 0;
         SwitchOutput();
+        Instance = this;
+    }
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        
     }
 
     private void SwitchOutput()
@@ -147,11 +152,10 @@ public class FluidSimulation : MonoBehaviour
         SetBound(bound, source);
     }
 
-    void Diffuse(RenderTexture source, float a)
+    void Diffuse(RenderTexture source, float a,float bound)
     {
-        Debug.Log(string.Format("diffuse a:{0}", a));
-        bool useImplicit = true;
-        a = m_config.DyeViscosity;
+        //Debug.Log(string.Format("diffuse a:{0}", a));
+        bool useImplicit = false;
         if (useImplicit)
         {
             m_linSolverMaterial.SetFloat("_a", a);
@@ -171,14 +175,14 @@ public class FluidSimulation : MonoBehaviour
         {
             m_diffuseMaterial.SetVector("_resolution", new Vector4(m_config.SimResolution, m_config.SimResolution, 1.0f, 1.0f));
             m_diffuseMaterial.SetTexture("_Source", source);
-            a = m_config.DyeViscosity;
             m_diffuseMaterial.SetFloat("_a", a);//0.23
-            for(int i = 0; i < 20; i++)
+            for(int i = 0; i < 7; i++)
             {
                 Blit(source, source, m_diffuseMaterial);
-            } 
+                SetBound(bound, source);
+            }
+            
         }
-
     }
 
     void CalcDivergence()
@@ -186,6 +190,7 @@ public class FluidSimulation : MonoBehaviour
         m_divergenceMaterial.SetTexture("_Source", m_velocity);
         m_divergenceMaterial.SetVector("_resolution", new Vector4(m_config.SimResolution, m_config.SimResolution, 1.0f, 1.0f));
         Blit(m_divergence, m_divergence, m_divergenceMaterial);
+        SetBound(0, m_divergence);
     }
 
     void ResolvePress()
@@ -197,6 +202,7 @@ public class FluidSimulation : MonoBehaviour
         {
             Graphics.Blit(m_press, m_temp, m_pressMaterial);
             Graphics.Blit(m_temp, m_press, m_copyMaterial);
+            SetBound(0, m_press);
         }
     }
 
@@ -204,12 +210,14 @@ public class FluidSimulation : MonoBehaviour
     {
         CalcDivergence();
         //resove press
+        Clear(m_press, 0);
         ResolvePress();
 
         m_subtractPressureGradientMaterial.SetTexture("_Velocity", m_velocity);
         m_subtractPressureGradientMaterial.SetTexture("_Pressure", m_press);
         m_subtractPressureGradientMaterial.SetVector("_resolution", new Vector4(m_config.SimResolution, m_config.SimResolution, 1.0f, 1.0f));
         Blit(m_velocity, m_velocity, m_subtractPressureGradientMaterial);
+        SetBound(1, m_velocity);
     }
 
     void Dissipate(RenderTexture source,float speed)
@@ -232,15 +240,15 @@ public class FluidSimulation : MonoBehaviour
     void Step()
     {
         Advect(m_velocity, m_velocity,1);
-        //Dissipate(m_velocity, 1.5f);
-        //Diffuse(m_velocity, 0.25f);
+        Diffuse(m_velocity, 0.25f,1.0f);
         Project(m_velocity);
+        //Dissipate(m_velocity, 1.5f);
 
         Advect(m_velocity, m_dye,0);
-        float viscosity = m_config.DyeViscosity;
-        float a = DeltaTime * viscosity * m_config.SimResolution * m_config.SimResolution;
-        //Diffuse(m_dye, a);
-        //Dissipate(m_dye, 3.0f);
+        //float viscosity = m_config.DyeViscosity;
+        //float a = DeltaTime * viscosity * m_config.SimResolution * m_config.SimResolution;
+        Diffuse(m_dye, m_config.DyeDiffuse, 0);
+        //Dissipate(m_dye, 1.0f);
     }
 
     void AddSource(float x,float y,float deltaX,float deltaY,Color color)
@@ -266,6 +274,13 @@ public class FluidSimulation : MonoBehaviour
                 AddSource(pointerData.x, pointerData.y, pointerData.deltaX * m_config.SplatForce, pointerData.deltaY * m_config.SplatForce, pointerData.color);
             }
         }
+    }
+
+    void Clear(RenderTexture target,float value)
+    {
+        m_clearMaterial.SetFloat("_value", 0);
+        m_clearMaterial.SetTexture("_Source", target);
+        Blit(target, target, m_clearMaterial);
     }
 
     void Clear()
