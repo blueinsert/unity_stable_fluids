@@ -1,4 +1,4 @@
-Shader "bluebean/StableFluids/LinSolverShader"
+Shader "bluebean/StableFluids/DivergenceShader"
 {
 	Properties
 	{
@@ -38,10 +38,7 @@ Shader "bluebean/StableFluids/LinSolverShader"
 	}
 
 			sampler2D _MainTex;
-			sampler2D _Right;
-			sampler2D _Left;
-			float _a;
-			float _c;
+			sampler2D _Source;
 			float4 _resolution;
 
 			float4 frag(v2f i) : SV_Target
@@ -51,12 +48,12 @@ Shader "bluebean/StableFluids/LinSolverShader"
 				float2 vT = i.uv + float2(0, 1.0 / _resolution.y);
 				float2 vB = i.uv - float2(0, 1.0 / _resolution.y);
 
-				float4 b = tex2D(_Right, i.uv);
-				float4 left = tex2D(_Left, vL);
-				float4 right = tex2D(_Left, vR);
-				float4 top = tex2D(_Left, vT);
-				float4 bottom = tex2D(_Left, vB);
-				float4 col = (b + _a * (left + right + top + bottom)) / (_c);
+				float left = tex2D(_Source, vL).x;
+				float right = tex2D(_Source, vR).x;
+				float top = tex2D(_Source, vT).y;
+				float bottom = tex2D(_Source, vB).y;
+				float div = 0.5 * (right - left + top - bottom);
+				float4 col = float4(div, 0, 0, 1.0);
 			    return col;
 		    }
 		ENDCG

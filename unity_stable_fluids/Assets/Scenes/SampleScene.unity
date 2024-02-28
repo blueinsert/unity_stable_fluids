@@ -433,15 +433,28 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_velocity: {fileID: 0}
   m_dye: {fileID: 0}
+  m_divergence: {fileID: 0}
+  m_press: {fileID: 0}
   m_temp: {fileID: 0}
   m_temp2: {fileID: 0}
+  m_outputTextures: []
+  m_outputIndex: 0
   m_addSourceMaterial: {fileID: 2100000, guid: 5047aa96d71514e48a88fa991781a618, type: 2}
   m_advectMaterial: {fileID: 2100000, guid: 3fe0596e4116dfa43a2cc0612865e09e, type: 2}
+  m_diffuseMaterial: {fileID: 2100000, guid: 376d1442dff8a164e93ea3db492d730d, type: 2}
+  m_divergenceMaterial: {fileID: 2100000, guid: 19b658aed918ba94886bc9b5728a84de,
+    type: 2}
+  m_pressMaterial: {fileID: 2100000, guid: 2066159fce1ac0d4a9b36f9aad4e1c4f, type: 2}
+  m_subtractPressureGradientMaterial: {fileID: 2100000, guid: 0508a5eb6d8be6549bd8547580326fee,
+    type: 2}
+  m_boundMaterial: {fileID: 2100000, guid: b467aad6ae89fc74ba61d30ecd600f9b, type: 2}
   m_linSolverMaterial: {fileID: 2100000, guid: 42cbfa4814fe9d942b5cb86d7f71ca43, type: 2}
   m_dissipateMaterial: {fileID: 2100000, guid: eb81c4cf2c333544085554b6306a66d9, type: 2}
   m_displayMaterial: {fileID: 2100000, guid: f8b9a18e879dedc47ae70371aab0c8eb, type: 2}
   m_copyMaterial: {fileID: 2100000, guid: 383a0e3825a9cf54c89b828e7da9f6ee, type: 2}
+  m_clearMaterial: {fileID: 2100000, guid: 8e956ef2c7c076d4791e550311b18777, type: 2}
   m_output: {fileID: 1023475743}
+  m_clearFlag: 0
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -1338,6 +1351,7 @@ GameObject:
   - component: {fileID: 1364139219}
   - component: {fileID: 1364139221}
   - component: {fileID: 1364139220}
+  - component: {fileID: 1364139222}
   m_Layer: 5
   m_Name: ConfigDetail
   m_TagString: Untagged
@@ -1403,6 +1417,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1364139218}
   m_CullTransparentMesh: 1
+--- !u!114 &1364139222
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1364139218}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 119891c1b550bda418a95e56ebc4a4ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_visocitySlider: {fileID: 900504246}
+  m_visocityInputField: {fileID: 471234439}
 --- !u!1 &1684400508
 GameObject:
   m_ObjectHideFlags: 0

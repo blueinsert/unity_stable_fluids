@@ -1,4 +1,4 @@
-Shader "bluebean/StableFluids/LinSolverShader"
+Shader "bluebean/StableFluids/DiffuseShader"
 {
 	Properties
 	{
@@ -38,27 +38,31 @@ Shader "bluebean/StableFluids/LinSolverShader"
 	}
 
 			sampler2D _MainTex;
-			sampler2D _Right;
-			sampler2D _Left;
-			float _a;
-			float _c;
+			float4 _texelSize;
 			float4 _resolution;
+			sampler2D _Source;
+			float _a;
 
 			float4 frag(v2f i) : SV_Target
 			{
+				//_resolution.x = 512;
+			//_resolution.y = 512;
 				float2 vL = i.uv - float2(1.0 / _resolution.x,0);
 				float2 vR = i.uv + float2(1.0 / _resolution.x, 0);
 				float2 vT = i.uv + float2(0, 1.0 / _resolution.y);
 				float2 vB = i.uv - float2(0, 1.0 / _resolution.y);
-
-				float4 b = tex2D(_Right, i.uv);
-				float4 left = tex2D(_Left, vL);
-				float4 right = tex2D(_Left, vR);
-				float4 top = tex2D(_Left, vT);
-				float4 bottom = tex2D(_Left, vB);
-				float4 col = (b + _a * (left + right + top + bottom)) / (_c);
-			    return col;
-		    }
+				//float4 c = tex2Dlod(_MainTex, float4(i.uv,0,0));
+				float4 c = tex2D(_Source,i.uv);
+				//explicit time intergration for diffuse
+				float4 l = tex2D(_Source, vL);
+				float4 r = tex2D(_Source, vR);
+				float4 t = tex2D(_Source, vT);
+				float4 b = tex2D(_Source, vB);
+				//float4 result = (1.0 - 4.0 * _a) * c + _a * (l + r + t + b);
+				float4 result = (c + (l + r + t + b) * _a) / (1 + 4.0 * _a);
+				//result = float4(_resolution.x, 0, 0, 1);
+                return result;
+		}
 		ENDCG
 	}
 	}

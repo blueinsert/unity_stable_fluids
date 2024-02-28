@@ -1,4 +1,4 @@
-Shader "bluebean/StableFluids/LinSolverShader"
+Shader "bluebean/StableFluids/PressGradientSubtractShader"
 {
 	Properties
 	{
@@ -38,10 +38,10 @@ Shader "bluebean/StableFluids/LinSolverShader"
 	}
 
 			sampler2D _MainTex;
-			sampler2D _Right;
-			sampler2D _Left;
-			float _a;
-			float _c;
+
+			sampler2D _Velocity;
+			sampler2D _Pressure;
+
 			float4 _resolution;
 
 			float4 frag(v2f i) : SV_Target
@@ -51,13 +51,13 @@ Shader "bluebean/StableFluids/LinSolverShader"
 				float2 vT = i.uv + float2(0, 1.0 / _resolution.y);
 				float2 vB = i.uv - float2(0, 1.0 / _resolution.y);
 
-				float4 b = tex2D(_Right, i.uv);
-				float4 left = tex2D(_Left, vL);
-				float4 right = tex2D(_Left, vR);
-				float4 top = tex2D(_Left, vT);
-				float4 bottom = tex2D(_Left, vB);
-				float4 col = (b + _a * (left + right + top + bottom)) / (_c);
-			    return col;
+				float left = tex2D(_Pressure, vL).r;
+				float right = tex2D(_Pressure, vR).r;
+				float top = tex2D(_Pressure, vT).r;
+				float bottom = tex2D(_Pressure, vB).r;
+				float2 velocity = tex2D(_Velocity, i.uv).rg;
+				velocity.xy -= float2(right - left, top - bottom);
+				return float4(velocity, 0, 1);
 		    }
 		ENDCG
 	}

@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-5582030510458044739
+--- !u!114 &-8278875271699090278
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
@@ -20,8 +20,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: DissipateMaterial
-  m_Shader: {fileID: 4800000, guid: 77de757bed9a9ac4c890a9b5229ff10e, type: 3}
+  m_Name: ClearMaterial
+  m_Shader: {fileID: 4800000, guid: d0daf5f6717a6b94eac9d7e80a59601e, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
