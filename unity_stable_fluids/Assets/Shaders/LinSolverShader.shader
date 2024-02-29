@@ -42,14 +42,14 @@ Shader "bluebean/StableFluids/LinSolverShader"
 			sampler2D _Left;
 			float _a;
 			float _c;
-			float4 _resolution;
+			float4 _texelSize;
 
 			float4 frag(v2f i) : SV_Target
 			{
-				float2 vL = i.uv - float2(1.0 / _resolution.x,0);
-				float2 vR = i.uv + float2(1.0 / _resolution.x, 0);
-				float2 vT = i.uv + float2(0, 1.0 / _resolution.y);
-				float2 vB = i.uv - float2(0, 1.0 / _resolution.y);
+				float2 vL = i.uv - float2(_texelSize.x,0);
+				float2 vR = i.uv + float2(_texelSize.x, 0);
+				float2 vT = i.uv + float2(0, _texelSize.y);
+				float2 vB = i.uv - float2(0, _texelSize.y);
 
 				float4 b = tex2D(_Right, i.uv);
 				float4 left = tex2D(_Left, vL);

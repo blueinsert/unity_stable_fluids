@@ -42,21 +42,21 @@ Shader "bluebean/StableFluids/PressGradientSubtractShader"
 			sampler2D _Velocity;
 			sampler2D _Pressure;
 
-			float4 _resolution;
+			float4 _texelSize;
 
 			float4 frag(v2f i) : SV_Target
 			{
-				float2 vL = i.uv - float2(1.0 / _resolution.x,0);
-				float2 vR = i.uv + float2(1.0 / _resolution.x, 0);
-				float2 vT = i.uv + float2(0, 1.0 / _resolution.y);
-				float2 vB = i.uv - float2(0, 1.0 / _resolution.y);
+				float2 vL = i.uv - float2(_texelSize.x,0);
+				float2 vR = i.uv + float2(_texelSize.x, 0);
+				float2 vT = i.uv + float2(0, _texelSize.y);
+				float2 vB = i.uv - float2(0, _texelSize.y);
 
 				float left = tex2D(_Pressure, vL).r;
 				float right = tex2D(_Pressure, vR).r;
 				float top = tex2D(_Pressure, vT).r;
 				float bottom = tex2D(_Pressure, vB).r;
 				float2 velocity = tex2D(_Velocity, i.uv).rg;
-				velocity.xy -= float2(right - left, top - bottom);
+				velocity.xy -= float2(right - left, top - bottom)*0.5;
 				return float4(velocity, 0, 1);
 		    }
 		ENDCG

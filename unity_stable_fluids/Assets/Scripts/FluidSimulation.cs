@@ -1,19 +1,25 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Rendering;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
 using static Unity.VisualScripting.Member;
 using static UnityEngine.GraphicsBuffer;
 
 public class FluidConfig
 {
     public const float DiffuseRange = 0.245f;
+    public const float PressureIterRange = 200;
 
     public int SimResolution = 512;
+    public int DyeResolution = 1024;
     public float SplatForce = 6000f;
-
+    public float SplatRadius = 0.2f;
     public float DyeDiffuse = 0.23f;
     public float VelocityDiffuse = 0.20f;
+    public int PressureIterNum = 20;
 }
 
 public class PointerData
@@ -30,11 +36,23 @@ public class PointerData
     public Color color;
 }
 
-public class FluidSimulation : MonoBehaviour
+public class OutputTextureInfo
+{
+    public RenderTexture m_outputTexture;
+    public string m_desc;
+}
+
+public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerMoveHandler
 {
     public static FluidSimulation Instance;
 
     public FluidConfig m_config;
+
+    public Vector2Int m_simResolution;
+    public Vector2Int m_dyeResolution;
+    public Vector2 m_simTexelSize;
+    public Vector2 m_dyeTexelSize;
+
     public RenderTexture m_velocity = null;
     public RenderTexture m_dye = null;
     public RenderTexture m_divergence = null;
@@ -43,7 +61,7 @@ public class FluidSimulation : MonoBehaviour
     public RenderTexture m_temp = null;
     public RenderTexture m_temp2 = null;
 
-    public List<RenderTexture> m_outputTextures = new List<RenderTexture>();
+    public List<OutputTextureInfo> m_outputTextures = new List<OutputTextureInfo>();
     public int m_outputIndex = 0;
 
     public Material m_addSourceMaterial = null;
@@ -68,15 +86,29 @@ public class FluidSimulation : MonoBehaviour
     public const int FrameRate = 60;
     public const float DeltaTime = 1.0f / FrameRate;
 
+    public OutputTextureInfo CurrentOutputTextureInfo
+    {
+        get
+        {
+            var texture = m_outputTextures[m_outputIndex];
+            return texture;
+        }
+    }
+
     private void Awake()
     {
         Application.targetFrameRate = 60;
         m_config = new FluidConfig();
+        m_simResolution = GetResolution(m_config.SimResolution);
+        m_dyeResolution = GetResolution(m_config.DyeResolution);
+        m_simTexelSize = new Vector2(1.0f / m_simResolution.x, 1.0f / m_simResolution.y);
+        m_dyeTexelSize = new Vector2(1.0f / m_dyeResolution.x, 1.0f / m_dyeResolution.y);
+
         PrepareFrameBuffers();
-        m_outputTextures.Add(m_dye);
-        m_outputTextures.Add(m_velocity);
-        m_outputTextures.Add(m_divergence);
-        m_outputTextures.Add(m_press);
+        AddOutputTexture(m_dye, "染料");
+        AddOutputTexture(m_velocity, "速度");
+        AddOutputTexture(m_divergence, "散度");
+        AddOutputTexture(m_press, "压力");
 
         m_pointerDatas.Add(new PointerData());
 
@@ -89,46 +121,59 @@ public class FluidSimulation : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+
+    }
+
+    private void AddOutputTexture(RenderTexture output, string desc)
+    {
+        m_outputTextures.Add(new OutputTextureInfo() { m_outputTexture = output, m_desc = desc });
     }
 
     private void SwitchOutput()
     {
         var texture = m_outputTextures[m_outputIndex];
-        m_output.texture = texture;
+        m_output.texture = texture.m_outputTexture;
         //m_displayMaterial.SetTexture("_MainTex", texture);
         //m_output.material = m_displayMaterial;
     }
 
-    RenderTexture CreateRenderTexture(int width,int height)
+    RenderTexture CreateRenderTexture(int w, int h)
     {
-        var renderTexture = new RenderTexture(width, height, 24);
+        var renderTexture = new RenderTexture(w, h, 24);
         renderTexture.format = RenderTextureFormat.ARGBFloat;
         renderTexture.enableRandomWrite = true; // 允许随机写入  
         renderTexture.filterMode = FilterMode.Bilinear; // 过滤模式为点采样  
-        renderTexture.antiAliasing  = 1; // 抗锯齿级别  
+        renderTexture.antiAliasing = 1; // 抗锯齿级别  
         renderTexture.wrapMode = TextureWrapMode.Clamp;
         renderTexture.Create(); // 创建 RenderTexture  
         return renderTexture;
     }
 
-    void PrepareFrameBuffers()
+    Vector2Int GetResolution(int resolution)
     {
-        if(m_velocity == null)
-            m_velocity = CreateRenderTexture(m_config.SimResolution, m_config.SimResolution);
-        if (m_dye == null)
-            m_dye = CreateRenderTexture(m_config.SimResolution, m_config.SimResolution);
-        if (m_divergence == null)
-            m_divergence = CreateRenderTexture(m_config.SimResolution, m_config.SimResolution);
-        if (m_press == null)
-            m_press = CreateRenderTexture(m_config.SimResolution, m_config.SimResolution);
-        if (m_temp == null)
-            m_temp = CreateRenderTexture(m_config.SimResolution, m_config.SimResolution);
-        if (m_temp2 == null)
-            m_temp2 = CreateRenderTexture(m_config.SimResolution, m_config.SimResolution);
+        float radio = Screen.width / (float)Screen.height;
+        int h = Mathf.Min(resolution, Screen.height);
+        int w = Mathf.FloorToInt(radio * h);
+        return new Vector2Int(w, h);
     }
 
-    void Blit(RenderTexture source, RenderTexture target,Material m)
+    void PrepareFrameBuffers()
+    {
+        if (m_velocity == null)
+            m_velocity = CreateRenderTexture(m_simResolution.x, m_simResolution.y);
+        if (m_dye == null)
+            m_dye = CreateRenderTexture(m_dyeResolution.x, m_dyeResolution.y);
+        if (m_divergence == null)
+            m_divergence = CreateRenderTexture(m_simResolution.x, m_simResolution.y);
+        if (m_press == null)
+            m_press = CreateRenderTexture(m_simResolution.x, m_simResolution.y);
+        if (m_temp == null)
+            m_temp = CreateRenderTexture(m_simResolution.x, m_simResolution.y);
+        if (m_temp2 == null)
+            m_temp2 = CreateRenderTexture(m_dyeResolution.x, m_dyeResolution.y);
+    }
+
+    void Blit(RenderTexture source, RenderTexture target, Material m)
     {
         if (source != target)
         {
@@ -136,59 +181,67 @@ public class FluidSimulation : MonoBehaviour
         }
         else
         {
-            Graphics.Blit(source, m_temp, m);
-            Graphics.Blit(m_temp, target, m_copyMaterial);
+            if (target.width == m_temp.width)
+            {
+                Graphics.Blit(source, m_temp, m);
+                Graphics.Blit(m_temp, target, m_copyMaterial);
+            }
+            else
+            {
+                Graphics.Blit(source, m_temp2, m);
+                Graphics.Blit(m_temp2, target, m_copyMaterial);
+            }
         }
     }
 
-    void Advect(RenderTexture velocity, RenderTexture source,float bound)
+    void Advect(RenderTexture velocity, RenderTexture source, float bound, Vector2 texelSize)
     {
         m_advectMaterial.SetTexture("_velocity", velocity);
         m_advectMaterial.SetTexture("_source", source);
         m_advectMaterial.SetFloat("_dt", DeltaTime);
-        m_advectMaterial.SetVector("_resolution", new Vector4(m_config.SimResolution, m_config.SimResolution, 1.0f, 1.0f));
+        m_advectMaterial.SetVector("_texelSize", new Vector4(texelSize.x, texelSize.y, 1.0f, 1.0f));
         Blit(source, source, m_advectMaterial);
 
         SetBound(bound, source);
     }
 
-    void Diffuse(RenderTexture source, float a,float bound)
+    void Diffuse(RenderTexture source, float a, float bound, Vector2 texelSize)
     {
         //Debug.Log(string.Format("diffuse a:{0}", a));
         bool useImplicit = false;
         if (useImplicit)
         {
-            m_linSolverMaterial.SetFloat("_a", a);
-            m_linSolverMaterial.SetFloat("_c", 1 + 4 * a);
-            m_linSolverMaterial.SetTexture("_Right", source);
-            m_linSolverMaterial.SetTexture("_Left", m_temp);
-            m_linSolverMaterial.SetVector("_resolution", new Vector4(m_config.SimResolution, m_config.SimResolution, 1.0f, 1.0f));
-            for (int i = 0; i < 20; i++)
-            {
-                m_linSolverMaterial.SetTexture("_Left", m_temp);
-                Graphics.Blit(m_temp, m_temp2, m_linSolverMaterial);
-                Graphics.Blit(m_temp2, m_temp, m_copyMaterial);
-            }
-            Graphics.Blit(m_temp, source, m_copyMaterial);
+            //m_linSolverMaterial.SetFloat("_a", a);
+            //m_linSolverMaterial.SetFloat("_c", 1 + 4 * a);
+            //m_linSolverMaterial.SetTexture("_Right", source);
+            //m_linSolverMaterial.SetTexture("_Left", m_temp);
+            //m_linSolverMaterial.SetVector("_texelSize", new Vector4(texelSize.x, texelSize.y, 1.0f, 1.0f));
+            //for (int i = 0; i < 20; i++)
+            //{
+            //    m_linSolverMaterial.SetTexture("_Left", m_temp);
+            //    Graphics.Blit(m_temp, m_temp2, m_linSolverMaterial);
+            //    Graphics.Blit(m_temp2, m_temp, m_copyMaterial);
+            //}
+            //Graphics.Blit(m_temp, source, m_copyMaterial);
         }
         else
         {
-            m_diffuseMaterial.SetVector("_resolution", new Vector4(m_config.SimResolution, m_config.SimResolution, 1.0f, 1.0f));
+            m_diffuseMaterial.SetVector("_texelSize", new Vector4(texelSize.x, texelSize.y, 1.0f, 1.0f));
             m_diffuseMaterial.SetTexture("_Source", source);
             m_diffuseMaterial.SetFloat("_a", a);//0.23
-            for(int i = 0; i < 7; i++)
+            for (int i = 0; i < 7; i++)
             {
                 Blit(source, source, m_diffuseMaterial);
                 SetBound(bound, source);
             }
-            
+
         }
     }
 
     void CalcDivergence()
     {
         m_divergenceMaterial.SetTexture("_Source", m_velocity);
-        m_divergenceMaterial.SetVector("_resolution", new Vector4(m_config.SimResolution, m_config.SimResolution, 1.0f, 1.0f));
+        m_divergenceMaterial.SetVector("_texelSize", new Vector4(m_simTexelSize.x, m_simTexelSize.y, 1.0f));
         Blit(m_divergence, m_divergence, m_divergenceMaterial);
         SetBound(0, m_divergence);
     }
@@ -197,30 +250,29 @@ public class FluidSimulation : MonoBehaviour
     {
         m_pressMaterial.SetTexture("_Divergence", m_divergence);
         m_pressMaterial.SetTexture("_Pressure", m_press);
-        m_pressMaterial.SetVector("_resolution", new Vector4(m_config.SimResolution, m_config.SimResolution, 1.0f, 1.0f));
-        for (int i = 0; i < 20; i++)
+        m_pressMaterial.SetVector("_texelSize", new Vector4(m_simTexelSize.x, m_simTexelSize.y, 1.0f, 1.0f));
+        for (int i = 0; i < m_config.PressureIterNum; i++)
         {
-            Graphics.Blit(m_press, m_temp, m_pressMaterial);
-            Graphics.Blit(m_temp, m_press, m_copyMaterial);
+            Blit(m_press, m_press, m_pressMaterial);
             SetBound(0, m_press);
         }
     }
 
-    void Project(RenderTexture source)
+    void Project()
     {
         CalcDivergence();
         //resove press
-        Clear(m_press, 0);
+        Clear(m_press, 0.5f);
         ResolvePress();
 
         m_subtractPressureGradientMaterial.SetTexture("_Velocity", m_velocity);
         m_subtractPressureGradientMaterial.SetTexture("_Pressure", m_press);
-        m_subtractPressureGradientMaterial.SetVector("_resolution", new Vector4(m_config.SimResolution, m_config.SimResolution, 1.0f, 1.0f));
+        m_subtractPressureGradientMaterial.SetVector("_texelSize", new Vector4(m_simTexelSize.x, m_simTexelSize.y, 1.0f, 1.0f));
         Blit(m_velocity, m_velocity, m_subtractPressureGradientMaterial);
         SetBound(1, m_velocity);
     }
 
-    void Dissipate(RenderTexture source,float speed)
+    void Dissipate(RenderTexture source, float speed)
     {
         m_dissipateMaterial.SetTexture("_MainTex", source);
         m_dissipateMaterial.SetFloat("_dissipation", speed);
@@ -229,44 +281,45 @@ public class FluidSimulation : MonoBehaviour
         Blit(source, source, m_dissipateMaterial);
     }
 
-    void SetBound(float b,RenderTexture source)
+    void SetBound(float b, RenderTexture source)
     {
-        m_boundMaterial.SetVector("_resolution", new Vector4(m_config.SimResolution, m_config.SimResolution, 1.0f, 1.0f));
-        m_boundMaterial.SetFloat("_b", b);
-        m_boundMaterial.SetTexture("_Source", source);
-        Blit(source, source, m_boundMaterial);
+        //m_boundMaterial.SetVector("_resolution", new Vector4(m_config.SimResolution, m_config.SimResolution, 1.0f, 1.0f));
+        //m_boundMaterial.SetFloat("_b", b);
+        //m_boundMaterial.SetTexture("_Source", source);
+        //Blit(source, source, m_boundMaterial);
     }
 
     void Step()
     {
-        Advect(m_velocity, m_velocity,1);
-        Diffuse(m_velocity, 0.25f,1.0f);
-        Project(m_velocity);
+        Advect(m_velocity, m_velocity, 1, m_simTexelSize);
+        //Diffuse(m_velocity, 0.25f,1.0f,m_simTexelSize);
+        Project();
         //Dissipate(m_velocity, 1.5f);
 
-        Advect(m_velocity, m_dye,0);
+        Advect(m_velocity, m_dye, 0, m_dyeTexelSize);
         //float viscosity = m_config.DyeViscosity;
         //float a = DeltaTime * viscosity * m_config.SimResolution * m_config.SimResolution;
-        Diffuse(m_dye, m_config.DyeDiffuse, 0);
+        //Diffuse(m_dye, m_config.DyeDiffuse, 0);
         //Dissipate(m_dye, 1.0f);
     }
 
-    void AddSource(float x,float y,float deltaX,float deltaY,Color color)
+    void AddSource(float x, float y, float deltaX, float deltaY, Color color)
     {
-
-        m_addSourceMaterial.SetVector("_color", new Vector4(color.r,color.g,color.b,color.a));
+        float radio = Screen.width / (float)Screen.height;
+        m_addSourceMaterial.SetFloat("_aspectRadio", radio);
+        m_addSourceMaterial.SetVector("_color", new Vector4(color.r, color.g, color.b, color.a));
         m_addSourceMaterial.SetVector("_point", new Vector4(x, y));
-        m_addSourceMaterial.SetFloat("_radius", 0.005f);
+        m_addSourceMaterial.SetFloat("_radius", m_config.SplatRadius / 100f * radio);
         Blit(m_dye, m_dye, m_addSourceMaterial);
 
         m_addSourceMaterial.SetVector("_color", new Vector4(deltaX, deltaY));
         Blit(m_velocity, m_velocity, m_addSourceMaterial);
-       
+
     }
 
     void ApplyInput()
     {
-        foreach(var pointerData in m_pointerDatas)
+        foreach (var pointerData in m_pointerDatas)
         {
             if (pointerData.IsMove)
             {
@@ -276,7 +329,7 @@ public class FluidSimulation : MonoBehaviour
         }
     }
 
-    void Clear(RenderTexture target,float value)
+    void Clear(RenderTexture target, float value)
     {
         m_clearMaterial.SetFloat("_value", 0);
         m_clearMaterial.SetTexture("_Source", target);
@@ -306,9 +359,9 @@ public class FluidSimulation : MonoBehaviour
         EventListerner();
     }
 
-    Color HSV2RGB(float h,float s,float v)
+    Color HSV2RGB(float h, float s, float v)
     {
-        float r=0, g=0, b=0, i, f, p, q, t;
+        float r = 0, g = 0, b = 0, i, f, p, q, t;
         i = Mathf.Floor(h * 6);
         f = h * 6 - i;
         p = v * (1 - s);
@@ -317,7 +370,7 @@ public class FluidSimulation : MonoBehaviour
 
         switch (i % 6)
         {
-            case 0: r = v; g = t; b = p; break; 
+            case 0: r = v; g = t; b = p; break;
             case 1: r = q; g = v; b = p; break;
             case 2: r = p; g = v; b = t; break;
             case 3: r = p; g = q; b = v; break;
@@ -337,7 +390,7 @@ public class FluidSimulation : MonoBehaviour
         return c;
     }
 
-    void UpdatePointerDownData(PointerData pointerData,int id, float x,float y)
+    void UpdatePointerDownData(PointerData pointerData, int id, float x, float y)
     {
         pointerData.x = x;
         pointerData.y = y;
@@ -352,17 +405,15 @@ public class FluidSimulation : MonoBehaviour
 
     void UpdatePointerMoveData(PointerData pointerData, int id, float x, float y)
     {
-        if (pointerData.x != x || pointerData.y != y)
-        {
-            pointerData.ID = id;
-            pointerData.lastX = pointerData.x;
-            pointerData.lastY = pointerData.y;
-            pointerData.deltaX = x - pointerData.lastX;
-            pointerData.deltaY = y - pointerData.lastY;
-            pointerData.x = x;
-            pointerData.y = y;
-            pointerData.IsMove = true;
-        }
+        pointerData.ID = id;
+        pointerData.lastX = pointerData.x;
+        pointerData.lastY = pointerData.y;
+        float radio = Screen.width / (float)Screen.height;
+        pointerData.deltaX = (x - pointerData.lastX)* radio;
+        pointerData.deltaY = y - pointerData.lastY;
+        pointerData.x = x;
+        pointerData.y = y;
+        pointerData.IsMove = pointerData.deltaX != 0 || pointerData.deltaY != 0;
     }
 
     void UpdatePointerUpData(PointerData pointerData, int id, float x, float y)
@@ -407,7 +458,7 @@ public class FluidSimulation : MonoBehaviour
         if (Input.GetKeyUp(KeyCode.RightArrow))
         {
             m_outputIndex++;
-            if(m_outputIndex >= m_outputTextures.Count)
+            if (m_outputIndex >= m_outputTextures.Count)
             {
                 m_outputIndex = 0;
             }
@@ -426,7 +477,7 @@ public class FluidSimulation : MonoBehaviour
 
     private void OnRenderObject()
     {
-        
+
     }
 
     private void OnDestroy()
@@ -439,5 +490,24 @@ public class FluidSimulation : MonoBehaviour
             m_temp.Release();
         if (m_temp2 != null)
             m_temp2.Release();
+    }
+
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        var pos = eventData.position;
+        Debug.Log(string.Format("OnPointerDown:{0}", pos));
+
+    }
+
+    public void OnPointerUp(PointerEventData eventData)
+    {
+        var pos = eventData.position;
+        Debug.Log(string.Format("OnPointerUp:{0}", pos));
+    }
+
+    public void OnPointerMove(PointerEventData eventData)
+    {
+        var pos = eventData.position;
+        Debug.Log(string.Format("OnPointerMove:{0}", pos));
     }
 }

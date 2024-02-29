@@ -42,11 +42,11 @@ Shader "bluebean/StableFluids/AdvectShader"
             sampler2D _velocity;
             sampler2D _source;
             float _dt;
-            float4 _resolution;
+            float4 _texelSize;
 
             float4 frag(v2f i) : SV_Target
             {
-                float2 texelSize = float2(1.0 / _resolution.x, 1.0 / _resolution.y);
+                float2 texelSize = _texelSize.xy;
 
                 //3rd order Runge-Kutta
                 float2 v1 = tex2D(_velocity, i.uv).rg * texelSize;
@@ -55,6 +55,8 @@ Shader "bluebean/StableFluids/AdvectShader"
                 float2 p2 = i.uv - 0.75 * _dt * v2;
                 float2 v3 = tex2D(_velocity, p2).rg * texelSize;
                 float2 p = i.uv - _dt * (v1 * 2.0 / 9.0 + v2 / 3.0 + v3 * 4.0 / 9.0);
+
+                //p = i.uv - _dt * v1;
 
                 float4 col = tex2D(_source, p);
                 return col;
