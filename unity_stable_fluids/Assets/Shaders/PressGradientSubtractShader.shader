@@ -56,8 +56,8 @@ Shader "bluebean/StableFluids/PressGradientSubtractShader"
 				float top = tex2D(_Pressure, vT).r;
 				float bottom = tex2D(_Pressure, vB).r;
 				float2 velocity = tex2D(_Velocity, i.uv).rg;
-				//velocity.xy -= float2(right - left, top - bottom)*0.5;
-				velocity.xy -= float2(right - left, top - bottom);
+				velocity.xy -= float2(right - left, top - bottom)*0.5;
+				//velocity.xy -= float2(right - left, top - bottom);
 				return float4(velocity, 0, 1);
 		    }
 		ENDCG

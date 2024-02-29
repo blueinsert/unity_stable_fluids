@@ -13,13 +13,13 @@ public class FluidConfig
     public const float DiffuseRange = 0.245f;
     public const float PressureIterRange = 200;
 
-    public int SimResolution = 1024;
+    public int SimResolution = 512;
     public int DyeResolution = 1024;
     public float SplatForce = 6000f;
     public float SplatRadius = 0.2f;
     public float DyeDiffuse = 0.23f;
     public float VelocityDiffuse = 0.20f;
-    public int PressureIterNum = 20;
+    public int PressureIterNum = 200;
 }
 
 public class PointerData
@@ -262,7 +262,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     {
         CalcDivergence();
         //resove press
-        Clear(m_press, 0.4f);
+        Clear(m_press, 0.45f);
         ResolvePress();
 
         m_subtractPressureGradientMaterial.SetTexture("_Velocity", m_velocity);
