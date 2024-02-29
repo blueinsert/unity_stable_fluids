@@ -13,7 +13,7 @@ public class FluidConfig
     public const float DiffuseRange = 0.245f;
     public const float PressureIterRange = 200;
 
-    public int SimResolution = 512;
+    public int SimResolution = 1024;
     public int DyeResolution = 1024;
     public float SplatForce = 6000f;
     public float SplatRadius = 0.2f;
@@ -139,8 +139,8 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     RenderTexture CreateRenderTexture(int w, int h)
     {
-        var renderTexture = new RenderTexture(w, h, 24);
-        renderTexture.format = RenderTextureFormat.ARGBFloat;
+        var renderTexture = new RenderTexture(w, h, 0);
+        renderTexture.format = RenderTextureFormat.ARGBHalf;
         renderTexture.enableRandomWrite = true; // 允许随机写入  
         renderTexture.filterMode = FilterMode.Bilinear; // 过滤模式为点采样  
         renderTexture.antiAliasing = 1; // 抗锯齿级别  
@@ -241,18 +241,18 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     void CalcDivergence()
     {
         m_divergenceMaterial.SetTexture("_Source", m_velocity);
-        m_divergenceMaterial.SetVector("_texelSize", new Vector4(m_simTexelSize.x, m_simTexelSize.y, 1.0f));
+        m_divergenceMaterial.SetVector("_texelSize", new Vector4(m_simTexelSize.x, m_simTexelSize.y, 1.0f, 1.0f));
         Blit(m_divergence, m_divergence, m_divergenceMaterial);
         SetBound(0, m_divergence);
     }
 
     void ResolvePress()
     {
-        m_pressMaterial.SetTexture("_Divergence", m_divergence);
-        m_pressMaterial.SetTexture("_Pressure", m_press);
+        m_pressMaterial.SetTexture("_Divergence", m_divergence);  
         m_pressMaterial.SetVector("_texelSize", new Vector4(m_simTexelSize.x, m_simTexelSize.y, 1.0f, 1.0f));
         for (int i = 0; i < m_config.PressureIterNum; i++)
         {
+            m_pressMaterial.SetTexture("_Pressure", m_press);
             Blit(m_press, m_press, m_pressMaterial);
             SetBound(0, m_press);
         }
@@ -262,7 +262,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     {
         CalcDivergence();
         //resove press
-        Clear(m_press, 0.5f);
+        Clear(m_press, 0.4f);
         ResolvePress();
 
         m_subtractPressureGradientMaterial.SetTexture("_Velocity", m_velocity);
