@@ -1,25 +1,30 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting.FullSerializer;
 using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using UnityEngine.UIElements;
-using static Unity.VisualScripting.Member;
-using static UnityEngine.GraphicsBuffer;
 
 public class FluidConfig
 {
     public const float DiffuseRange = 0.245f;
-    public const float PressureIterRange = 200;
+    public const float DisspiateRange = 2.0f;
+    public const float PressureIterRange = 400;
+    public static readonly List<int> VelocityResolutionOptions = new() { 64, 128, 256, 512, 1024, 2048 };
+    public static readonly List<int> DyeResolutionOptions = new() { 64, 128, 256, 512, 1024, 2048 };
+    public static readonly Vector2Int SplatForceRange = new Vector2Int(5000, 15000);
 
-    public int SimResolution = 512;
-    public int DyeResolution = 1024;
-    public float SplatForce = 6000f;
-    public float SplatRadius = 0.2f;
-    public float DyeDiffuse = 0.23f;
-    public float VelocityDiffuse = 0.20f;
+    public int SimResolution = 256;
+    public int DyeResolution = 512;
+    public float DyeDisspiate = 0f;
+    public float VelocityDisspiate = 0f;
+    public float DyeDiffuse = 0f;
+    public float VelocityDiffuse = 0f;
     public int PressureIterNum = 200;
+    public float SplatForce = 12000f;
+    public float SplatRadius = 0.2f;
+
 }
 
 public class PointerData
@@ -84,7 +89,13 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     public bool m_clearFlag = false;
 
     public const int FrameRate = 60;
-    public const float DeltaTime = 1.0f / FrameRate;
+    public float DeltaTime
+    {
+        get
+        {
+            return 1.0f / FrameRate;
+        }
+    }
 
     public OutputTextureInfo CurrentOutputTextureInfo
     {
@@ -173,6 +184,73 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
             m_temp2 = CreateRenderTexture(m_dyeResolution.x, m_dyeResolution.y);
     }
 
+    public void ChangeSimFrameBufferSizeByIndex(int index)
+    {
+        var newResolution = FluidConfig.VelocityResolutionOptions[index];
+        if (m_config.SimResolution == newResolution)
+            return;
+        m_config.SimResolution = newResolution;
+        var res = GetResolution(newResolution);
+        ChangSimFrameBufferSize(res.x, res.y);
+        m_simResolution = res;
+        m_simTexelSize = new Vector2(1.0f / m_simResolution.x, 1.0f / m_simResolution.y);
+        m_outputTextures.Clear();
+        AddOutputTexture(m_dye, "染料");
+        AddOutputTexture(m_velocity, "速度");
+        AddOutputTexture(m_divergence, "散度");
+        AddOutputTexture(m_press, "压力");
+        SwitchOutput();
+    }
+
+    void ChangSimFrameBufferSize(int width, int height)
+    {
+        var velocity = CreateRenderTexture(width, height);
+        var divergence = CreateRenderTexture(width, height);
+        var press = CreateRenderTexture(width, height);
+        var temp = CreateRenderTexture(width, height);
+        Blit(m_velocity, velocity, m_copyMaterial);
+        Blit(m_divergence, divergence, m_copyMaterial);
+        Blit(m_press, press, m_copyMaterial);
+        Blit(m_temp, temp, m_copyMaterial);
+        m_velocity.Release();
+        m_velocity = velocity;
+        m_divergence.Release();
+        m_divergence = divergence;
+        m_press.Release();
+        m_press = press;
+        m_temp.Release();
+        m_temp = temp; 
+    }
+
+    public void ChangeDyeFrameBufferSizeByIndex(int index)
+    {
+        var newResolution = FluidConfig.DyeResolutionOptions[index];
+        if (m_config.DyeResolution == newResolution)
+            return;
+        m_config.DyeResolution = newResolution;
+        var res = GetResolution(newResolution);
+        ChangeDyeFrameBufferSize(res.x, res.y);
+        m_dyeResolution = res;
+        m_dyeTexelSize = new Vector2(1.0f / m_dyeResolution.x, 1.0f / m_dyeResolution.y);
+        m_outputTextures.Clear();
+        AddOutputTexture(m_dye, "染料");
+        AddOutputTexture(m_velocity, "速度");
+        AddOutputTexture(m_divergence, "散度");
+        AddOutputTexture(m_press, "压力");
+        SwitchOutput();
+    }
+
+    void ChangeDyeFrameBufferSize(int width, int height)
+    {
+        var dye = CreateRenderTexture(width, height);
+        Blit(m_dye, dye, m_copyMaterial);
+        var temp2 = CreateRenderTexture(width, height);
+        m_dye.Release();
+        m_dye = dye;
+        m_temp2.Release();
+        m_temp2 = temp2;
+    }
+
     void Blit(RenderTexture source, RenderTexture target, Material m)
     {
         if (source != target)
@@ -207,6 +285,8 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     void Diffuse(RenderTexture source, float a, float bound, Vector2 texelSize)
     {
+        if (a <= 0)
+            return;
         //Debug.Log(string.Format("diffuse a:{0}", a));
         bool useImplicit = false;
         if (useImplicit)
@@ -248,7 +328,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     void ResolvePress()
     {
-        m_pressMaterial.SetTexture("_Divergence", m_divergence);  
+        m_pressMaterial.SetTexture("_Divergence", m_divergence);
         m_pressMaterial.SetVector("_texelSize", new Vector4(m_simTexelSize.x, m_simTexelSize.y, 1.0f, 1.0f));
         for (int i = 0; i < m_config.PressureIterNum; i++)
         {
@@ -262,7 +342,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     {
         CalcDivergence();
         //resove press
-        Clear(m_press, 0.45f);
+        Clear(m_press, 0.3f);
         ResolvePress();
 
         m_subtractPressureGradientMaterial.SetTexture("_Velocity", m_velocity);
@@ -274,6 +354,8 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     void Dissipate(RenderTexture source, float speed)
     {
+        if (speed <= 0)
+            return;
         m_dissipateMaterial.SetTexture("_MainTex", source);
         m_dissipateMaterial.SetFloat("_dissipation", speed);
         m_dissipateMaterial.SetFloat("_dt", DeltaTime);
@@ -292,15 +374,13 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     void Step()
     {
         Advect(m_velocity, m_velocity, 1, m_simTexelSize);
-        //Diffuse(m_velocity, 0.25f,1.0f,m_simTexelSize);
+        Diffuse(m_velocity, m_config.VelocityDiffuse, 1.0f, m_simTexelSize);
         Project();
-        //Dissipate(m_velocity, 1.5f);
+        Dissipate(m_velocity, m_config.VelocityDisspiate);
 
         Advect(m_velocity, m_dye, 0, m_dyeTexelSize);
-        //float viscosity = m_config.DyeViscosity;
-        //float a = DeltaTime * viscosity * m_config.SimResolution * m_config.SimResolution;
-        //Diffuse(m_dye, m_config.DyeDiffuse, 0);
-        //Dissipate(m_dye, 1.0f);
+        Diffuse(m_dye, m_config.DyeDiffuse, 0, m_dyeTexelSize);
+        Dissipate(m_dye, m_config.DyeDisspiate);
     }
 
     void AddSource(float x, float y, float deltaX, float deltaY, Color color)
@@ -392,6 +472,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     void UpdatePointerDownData(PointerData pointerData, int id, float x, float y)
     {
+        pointerData.ID = id;
         pointerData.x = x;
         pointerData.y = y;
         pointerData.IsDown = true;
@@ -403,53 +484,53 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         pointerData.color = GenerateColor();
     }
 
-    void UpdatePointerMoveData(PointerData pointerData, int id, float x, float y)
+    void UpdatePointerMoveData(PointerData pointerData, float x, float y)
     {
-        pointerData.ID = id;
         pointerData.lastX = pointerData.x;
         pointerData.lastY = pointerData.y;
         float radio = Screen.width / (float)Screen.height;
-        pointerData.deltaX = (x - pointerData.lastX)* radio;
+        pointerData.deltaX = (x - pointerData.lastX) * radio;
         pointerData.deltaY = y - pointerData.lastY;
         pointerData.x = x;
         pointerData.y = y;
         pointerData.IsMove = pointerData.deltaX != 0 || pointerData.deltaY != 0;
     }
 
-    void UpdatePointerUpData(PointerData pointerData, int id, float x, float y)
+    void UpdatePointerUpData(PointerData pointerData, float x, float y)
     {
         pointerData.IsMove = false;
+        pointerData.IsDown = false;
     }
 
     void EventListerner()
     {
-        if (Input.GetMouseButtonDown(0))
-        {
-            var mousePos = Input.mousePosition;
-            float u = mousePos.x / (float)Screen.width;
-            float v = mousePos.y / (float)Screen.height;
-            var pointer = m_pointerDatas[0];
+        //if (Input.GetMouseButtonDown(0))
+        //{
+        //    var mousePos = Input.mousePosition;
+        //    float u = mousePos.x / (float)Screen.width;
+        //    float v = mousePos.y / (float)Screen.height;
+        //    var pointer = m_pointerDatas[0];
 
-            UpdatePointerDownData(pointer, -1, u, v);
-        }
-        if (Input.GetMouseButton(0))
-        {
-            var mousePos = Input.mousePosition;
-            float u = mousePos.x / (float)Screen.width;
-            float v = mousePos.y / (float)Screen.height;
-            var pointer = m_pointerDatas[0];
+        //    UpdatePointerDownData(pointer, -1, u, v);
+        //}
+        //if (Input.GetMouseButton(0))
+        //{
+        //    var mousePos = Input.mousePosition;
+        //    float u = mousePos.x / (float)Screen.width;
+        //    float v = mousePos.y / (float)Screen.height;
+        //    var pointer = m_pointerDatas[0];
 
-            UpdatePointerMoveData(pointer, -1, u, v);
-        }
-        if (Input.GetMouseButtonUp(0))
-        {
-            var mousePos = Input.mousePosition;
-            float u = mousePos.x / (float)Screen.width;
-            float v = mousePos.y / (float)Screen.height;
-            var pointer = m_pointerDatas[0];
+        //    UpdatePointerMoveData(pointer, -1, u, v);
+        //}
+        //if (Input.GetMouseButtonUp(0))
+        //{
+        //    var mousePos = Input.mousePosition;
+        //    float u = mousePos.x / (float)Screen.width;
+        //    float v = mousePos.y / (float)Screen.height;
+        //    var pointer = m_pointerDatas[0];
 
-            UpdatePointerUpData(pointer, -1, u, v);
-        }
+        //    UpdatePointerUpData(pointer, -1, u, v);
+        //}
         if (Input.GetKeyUp(KeyCode.C))
         {
             if (!m_clearFlag)
@@ -495,19 +576,39 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     public void OnPointerDown(PointerEventData eventData)
     {
         var pos = eventData.position;
-        Debug.Log(string.Format("OnPointerDown:{0}", pos));
+        //Debug.Log(string.Format("OnPointerDown:{0} id:{1}", pos, eventData.pointerId));
+        var mousePos = pos;
+        float u = mousePos.x / (float)Screen.width;
+        float v = mousePos.y / (float)Screen.height;
+        var pointer = m_pointerDatas[0];
+        var id = eventData.pointerId;
+        UpdatePointerDownData(pointer, id, u, v);
 
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
         var pos = eventData.position;
-        Debug.Log(string.Format("OnPointerUp:{0}", pos));
+        //Debug.Log(string.Format("OnPointerUp:{0} id:{1}", pos, eventData.pointerId));
+        var mousePos = pos;
+        float u = mousePos.x / (float)Screen.width;
+        float v = mousePos.y / (float)Screen.height;
+        var pointer = m_pointerDatas[0];
+        var id = eventData.pointerId;
+        if (pointer.ID == id)
+            UpdatePointerUpData(pointer, u, v);
     }
 
     public void OnPointerMove(PointerEventData eventData)
     {
         var pos = eventData.position;
-        Debug.Log(string.Format("OnPointerMove:{0}", pos));
+        //Debug.Log(string.Format("OnPointerMove:{0} id:{1}", pos, eventData.pointerId));
+        var mousePos = pos;
+        float u = mousePos.x / (float)Screen.width;
+        float v = mousePos.y / (float)Screen.height;
+        var pointer = m_pointerDatas[0];
+        var id = eventData.pointerId;
+        if (pointer.ID == id && pointer.IsDown)
+            UpdatePointerMoveData(pointer, u, v);
     }
 }
