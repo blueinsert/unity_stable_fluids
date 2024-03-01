@@ -39,9 +39,11 @@ Shader "bluebean/StableFluids/CopyShader"
 
             sampler2D _MainTex;
 
+            sampler2D _Source;
+
             fixed4 frag (v2f i) : SV_Target
             {
-                fixed4 col = tex2Dlod(_MainTex, float4(i.uv,0,0));
+                fixed4 col = tex2Dlod(_Source, float4(i.uv,0,0));
                 // just invert the colors
                 //col.rgb = 1 - col.rgb;
                 return col;

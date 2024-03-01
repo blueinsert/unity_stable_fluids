@@ -38,13 +38,14 @@ Shader "bluebean/StableFluids/DissipateShader"
 	}
 
 			sampler2D _MainTex;
+			sampler2D _Source;
 			float _dissipation;
 			float _dt;
 
 			float4 frag(v2f i) : SV_Target
 			{
 				//float4 col = tex2Dlod(_MainTex, float4(i.uv,0,0));
-				float4 col = tex2D(_MainTex,i.uv);
+				float4 col = tex2D(_Source,i.uv);
 				//_dissipation = 5.0;
 				//_dt = 0.033;
 			float decay = 1.0/( 1.0 + _dissipation * _dt);

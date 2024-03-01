@@ -40,6 +40,7 @@ Shader "bluebean/StableFluids/AddSourceShader"
 
             sampler2D _MainTex;
             
+            sampler2D _Source;
             float _aspectRadio;
             float3 _color;
             float2 _point;
@@ -50,7 +51,7 @@ Shader "bluebean/StableFluids/AddSourceShader"
                 float2 p = i.uv - _point.xy;
                 p.x *= _aspectRadio;
                 float3 splat = exp(-dot(p, p) / _radius) * _color;
-                float3 base = tex2D(_MainTex, i.uv).xyz;
+                float3 base = tex2D(_Source, i.uv).xyz;
                 float4 color = float4(base + splat, 1.0);
                 return color;
             }
