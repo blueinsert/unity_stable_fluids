@@ -56,7 +56,7 @@ Shader "bluebean/StableFluids/AdvectShader"
                 float2 v3 = tex2D(_velocity, p2).rg * texelSize;
                 float2 p = i.uv - _dt * (v1 * 2.0 / 9.0 + v2 / 3.0 + v3 * 4.0 / 9.0);
 
-                p = i.uv - _dt * v1;
+                //p = i.uv - _dt * v1;
 
                 float4 col = tex2D(_source, p);
                 return col;

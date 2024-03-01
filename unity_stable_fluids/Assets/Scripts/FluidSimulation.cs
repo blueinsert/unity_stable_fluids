@@ -18,12 +18,12 @@ public class FluidConfig
     public static readonly Vector2Int SplatForceRange = new Vector2Int(5000, 15000);
 
     public int SimResolution = 256;
-    public int DyeResolution = 512;
+    public int DyeResolution = 1024;
     public float DyeDisspiate = 0f;
     public float VelocityDisspiate = 0f;
     public float DyeDiffuse = 0f;
     public float VelocityDiffuse = 0f;
-    public int PressureIterNum = 200;
+    public int PressureIterNum = 24;
     public float SplatForce = 12000f;
     public float SplatRadius = 0.2f;
 
@@ -381,7 +381,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     {
         CalcDivergence();
         //resove press
-        Clear(m_press, 0.3f);
+        Clear(m_press, 0.67f);
         ResolvePress();
 
         m_subtractPressureGradientMaterial.SetTexture("_Velocity", m_velocity.Read().target);
@@ -419,7 +419,9 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         Project();
         Dissipate(m_velocity, m_config.VelocityDisspiate);
 
-        Advect(m_velocity.Read(), m_dye, 0, m_dyeTexelSize);
+        //wrong used m_dyeTexelSize,cause speed very small
+        //Advect(m_velocity.Read(), m_dye, 0, m_dyeTexelSize);
+        Advect(m_velocity.Read(), m_dye, 0, m_simTexelSize);
         Diffuse(m_dye, m_config.DyeDiffuse, 0, m_dyeTexelSize);
         Dissipate(m_dye, m_config.DyeDisspiate);
     }
