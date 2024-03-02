@@ -20,6 +20,9 @@ public class ConfigUIController : MonoBehaviour
     public InputField m_iterNumInputField;
     public Slider m_splatForceSlider;
     public InputField m_splatForceInputField;
+    public Button m_randomButton;
+    public Button m_randomButton2;
+    public Toggle m_colorfulToggle;
 
 
     // Start is called before the first frame update
@@ -35,6 +38,9 @@ public class ConfigUIController : MonoBehaviour
         m_velocityResolutionDropDown.onValueChanged.AddListener(OnSimResolutionChanged);
         m_dyeResolutionDropDown.onValueChanged.AddListener(OnDyeResolutionChanged);
         m_splatForceSlider.onValueChanged.AddListener(OnSplatForceSliderValueChanged);
+        m_randomButton.onClick.AddListener(OnRandomButtonClick);
+        m_randomButton2.onClick.AddListener(OnRandomButtonClick);
+        m_colorfulToggle.onValueChanged.AddListener(OnColorfulToggleChanged);
     }
 
     private void Init()
@@ -76,6 +82,8 @@ public class ConfigUIController : MonoBehaviour
         var value = (FluidSimulation.Instance.m_config.SplatForce - range.x) / (range.y - range.x);
         m_splatForceSlider.value = value;
         m_splatForceInputField.text = FluidSimulation.Instance.m_config.SplatForce.ToString();
+
+        m_colorfulToggle.isOn = FluidSimulation.Instance.m_config.Colorful;
     }
 
     // Update is called once per frame
@@ -151,6 +159,16 @@ public class ConfigUIController : MonoBehaviour
     {
         Debug.Log(string.Format("OnDyeResolutionChanged:{0}", index));
         FluidSimulation.Instance.ChangeDyeFrameBufferSizeByIndex(index);
+    }
+
+    private void OnRandomButtonClick()
+    {
+        FluidSimulation.Instance.RandomAdd();
+    }
+
+    private void OnColorfulToggleChanged(bool value)
+    {
+        FluidSimulation.Instance.m_config.Colorful = value;
     }
 
     #endregion

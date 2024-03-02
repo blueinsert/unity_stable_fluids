@@ -40,17 +40,16 @@ Shader "bluebean/StableFluids/BoundShader"
 			sampler2D _MainTex;
 
 			sampler2D _Source;
-
-			float _b;
-
-			float4 _resolution;
+			int _b;
+			int _ndim;
+			float4 _texelSize;
 
 			float4 frag(v2f i) : SV_Target
 			{
-				float2 vL = i.uv - float2(1.0 / _resolution.x,0);
-				float2 vR = i.uv + float2(1.0 / _resolution.x, 0);
-				float2 vT = i.uv + float2(0, 1.0 / _resolution.y);
-				float2 vB = i.uv - float2(0, 1.0 / _resolution.y);
+				float2 vL = i.uv - float2(_texelSize.x,0);
+				float2 vR = i.uv + float2(_texelSize.x, 0);
+				float2 vT = i.uv + float2(0, _texelSize.y);
+				float2 vB = i.uv - float2(0, _texelSize.y);
 
 				float4 left = tex2D(_Source, vL);
 				float4 right = tex2D(_Source, vR);
@@ -58,6 +57,15 @@ Shader "bluebean/StableFluids/BoundShader"
 				float4 bottom = tex2D(_Source, vB);
 
 				float4 center = tex2D(_Source, i.uv);
+				if (_ndim == 1) {
+
+				}
+				else if (_ndim == 2) {
+
+				}
+				else if (_ndim == 3) {
+
+				}
 				if (vL.x < 0 &&(i.uv.y>0 && i.uv.y<1.0)) {
 					center = _b == 0 ? right : -right;
 				}

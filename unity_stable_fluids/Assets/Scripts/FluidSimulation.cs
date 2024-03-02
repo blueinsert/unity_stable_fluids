@@ -19,13 +19,15 @@ public class FluidConfig
 
     public int SimResolution = 256;
     public int DyeResolution = 1024;
-    public float DyeDisspiate = 0f;
-    public float VelocityDisspiate = 0f;
+    public float DyeDisspiate = 0.1f;
+    public float VelocityDisspiate = 0.1f;
     public float DyeDiffuse = 0f;
     public float VelocityDiffuse = 0f;
-    public int PressureIterNum = 24;
+    public int PressureIterNum = 66;
     public float SplatForce = 12000f;
-    public float SplatRadius = 0.2f;
+    public float SplatRadius = 0.3f;
+    public bool Colorful = true;
+    public float ColorUpdatePeriod = 0.1f;
 
 }
 
@@ -155,8 +157,9 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     public RawImage m_output = null;
 
+    public Queue<int> m_randomSourcePerFrame = new Queue<int>();
     public List<PointerData> m_pointerDatas = new List<PointerData>();
-
+    public float m_colorUpdateTimer = 0;
     public bool m_clearFlag = false;
 
     public const int FrameRate = 60;
@@ -404,11 +407,12 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         source.Swap();
     }
 
-    void SetBound(float b, RenderTexture source)
+    void SetBound(int bound,int ndim, Vector2 texelSize, RenderTexture source)
     {
-        //m_boundMaterial.SetVector("_resolution", new Vector4(m_config.SimResolution, m_config.SimResolution, 1.0f, 1.0f));
-        //m_boundMaterial.SetFloat("_b", b);
-        //m_boundMaterial.SetTexture("_Source", source);
+        m_boundMaterial.SetVector("_texelSize", new Vector4(texelSize.x, texelSize.y, 1.0f, 1.0f));
+        m_boundMaterial.SetInt("_b", bound);
+        m_boundMaterial.SetTexture("_Source", source);
+        m_boundMaterial.SetInt("_ndim", ndim);
         //Blit(source, source, m_boundMaterial);
     }
 
@@ -424,6 +428,25 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         Advect(m_velocity.Read(), m_dye, 0, m_simTexelSize);
         Diffuse(m_dye, m_config.DyeDiffuse, 0, m_dyeTexelSize);
         Dissipate(m_dye, m_config.DyeDisspiate);
+    }
+
+    public void RandomAdd()
+    {
+        m_randomSourcePerFrame.Enqueue((int)(Random.Range(0, 100) / 100f * 25) + 5);
+    }
+
+    void RandomAddSource(int num)
+    {
+        for(int i = 0; i < num; i++)
+        {
+            var color = GenerateColor();
+            color *= 10f;
+            var x = Random.Range(0, 100) / 100f;
+            var y = Random.Range(0, 100) / 100f;
+            var dx = 1500f * (Random.Range(0, 100) / 100f - 0.5f);
+            var dy = 1500f * (Random.Range(0, 100) / 100f - 0.5f);
+            AddSource(x, y, dx, dy, color);
+        }
     }
 
     void AddSource(float x, float y, float deltaX, float deltaY, Color color)
@@ -451,6 +474,22 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
             {
                 pointerData.IsMove = false;
                 AddSource(pointerData.x, pointerData.y, pointerData.deltaX * m_config.SplatForce, pointerData.deltaY * m_config.SplatForce, pointerData.color);
+            }
+        }
+        if (m_randomSourcePerFrame.Count != 0)
+        {
+            RandomAddSource(m_randomSourcePerFrame.Dequeue());
+        }
+        if (m_config.Colorful)
+        {
+            m_colorUpdateTimer += Time.deltaTime;
+            if(m_colorUpdateTimer > m_config.ColorUpdatePeriod)
+            {
+                m_colorUpdateTimer -= m_config.ColorUpdatePeriod;
+                foreach (var pointerData in m_pointerDatas)
+                {
+                    pointerData.color = GenerateColor();
+                }
             }
         }
     }
@@ -596,6 +635,10 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
                 m_outputIndex = m_outputTextures.Count - 1;
             }
             SwitchOutput();
+        }
+        if (Input.GetKeyUp(KeyCode.Space))
+        {
+            m_randomSourcePerFrame.Enqueue((int)(Random.Range(0, 100) / 100f * 25) + 5);
         }
     }
 

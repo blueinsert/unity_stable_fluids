@@ -84,7 +84,7 @@ public class TestUI : MonoBehaviour
             InitStyle(unit);
         }
 
-        int x = m_unit*4;
+        int x = m_unit*2;
         int y = Screen.height - m_unit*2;
         GUI.Label(new Rect(x, y, m_unit * 10, m_unit * 2), $"FPS  {m_fps:f1} ({1000.0f / m_fps:f1})", m_textStyle);
 
