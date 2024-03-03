@@ -6337,6 +6337,11 @@ MonoBehaviour:
   m_displayMaterial: {fileID: 2100000, guid: f8b9a18e879dedc47ae70371aab0c8eb, type: 2}
   m_copyMaterial: {fileID: 2100000, guid: 383a0e3825a9cf54c89b828e7da9f6ee, type: 2}
   m_clearMaterial: {fileID: 2100000, guid: 8e956ef2c7c076d4791e550311b18777, type: 2}
+  m_sunrayMaskMaterial: {fileID: 2100000, guid: cbb5eed4aa92ea142981f44de9b276c4,
+    type: 2}
+  m_sunrayMaterial: {fileID: 2100000, guid: 0b4e26e9ca2188146b0a4cdfc8e1d921, type: 2}
+  m_postEffectMaterial: {fileID: 2100000, guid: 0f2b02555c5ac534cac53ac6bafa6016,
+    type: 2}
   m_output: {fileID: 1023475743}
   m_colorUpdateTimer: 0
   m_clearFlag: 0

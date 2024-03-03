@@ -8,6 +8,15 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using static Unity.VisualScripting.Member;
 
+public class Ejecter
+{
+    public float x;
+    public float y;
+    public float dx;
+    public float dy;
+    public Color color;
+}
+
 public class FluidConfig
 {
     public const float DiffuseRange = 0.245f;
@@ -29,6 +38,43 @@ public class FluidConfig
     public bool Colorful = true;
     public float ColorUpdatePeriod = 0.1f;
 
+    public List<Ejecter> m_ejecters = new List<Ejecter>();
+
+    public FluidConfig()
+    {
+        m_ejecters.Add(new Ejecter()
+        {
+            x = 0.01f,
+            y = 0.51f,
+            dx = 10,
+            dy = 0,
+            color = FluidSimulation.GenerateColor(),
+        });
+        m_ejecters.Add(new Ejecter()
+        {
+            x = 0.99f,
+            y = 0.49f,
+            dx = -10,
+            dy = 0,
+            color = FluidSimulation.GenerateColor(),
+        });
+        m_ejecters.Add(new Ejecter()
+        {
+            x = 0.49f,
+            y = 0.01f,
+            dx = 0,
+            dy = 10,
+            color = FluidSimulation.GenerateColor(),
+        });
+        m_ejecters.Add(new Ejecter()
+        {
+            x = 0.51f,
+            y = 0.99f,
+            dx = 0,
+            dy = -10,
+            color = FluidSimulation.GenerateColor(),
+        });
+    }
 }
 
 public class PointerData
@@ -47,6 +93,7 @@ public class PointerData
 
 public class OutputTextureInfo
 {
+    public FBO m_fbo;
     public DoubleFBO m_doubleFBO;
     public string m_desc;
 }
@@ -135,6 +182,9 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     public DoubleFBO m_dye = null;
     public DoubleFBO m_divergence = null;
     public DoubleFBO m_press = null;
+    public FBO m_sunrayMask = null;
+    public FBO m_sunray = null;
+    public FBO m_final = null;
 
     //public RenderTexture m_temp = null;
     //public RenderTexture m_temp2 = null;
@@ -154,6 +204,9 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     public Material m_displayMaterial = null;
     public Material m_copyMaterial = null;
     public Material m_clearMaterial = null;
+    public Material m_sunrayMaskMaterial = null;
+    public Material m_sunrayMaterial = null;
+    public Material m_postEffectMaterial = null;
 
     public RawImage m_output = null;
 
@@ -206,10 +259,18 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         m_outputTextures.Add(new OutputTextureInfo() { m_doubleFBO = output, m_desc = desc });
     }
 
+    private void AddOutputTexture(FBO output, string desc)
+    {
+        m_outputTextures.Add(new OutputTextureInfo() { m_fbo = output, m_desc = desc });
+    }
+
     private void SwitchOutput()
     {
         var texture = m_outputTextures[m_outputIndex];
-        m_output.texture = texture.m_doubleFBO.Read().target;
+        if(texture.m_doubleFBO!=null)
+            m_output.texture = texture.m_doubleFBO.Read().target;
+        else if(texture.m_fbo!=null)
+            m_output.texture = texture.m_fbo.target;
         //m_displayMaterial.SetTexture("_MainTex", texture);
         //m_output.material = m_displayMaterial;
     }
@@ -266,11 +327,39 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
             m_press.Release();
             m_press = press;
         }
+        if (m_sunrayMask == null)
+            m_sunrayMask = FBO.Create(m_dyeResolution.x, m_dyeResolution.y, RenderTextureFormat.RFloat, FilterMode.Bilinear);
+        else
+        {
+            var sunrayMask = FBO.Create(m_dyeResolution.x, m_dyeResolution.y, RenderTextureFormat.RFloat, FilterMode.Bilinear);
+            m_sunrayMask.Release();
+            m_sunrayMask = sunrayMask;
+        }
+        if (m_sunray == null)
+            m_sunray = FBO.Create(m_dyeResolution.x, m_dyeResolution.y, RenderTextureFormat.RFloat, FilterMode.Bilinear);
+        else
+        {
+            var sunray = FBO.Create(m_dyeResolution.x, m_dyeResolution.y, RenderTextureFormat.RFloat, FilterMode.Bilinear);
+            m_sunray.Release();
+            m_sunray = sunray;
+        }
+        if (m_final == null)
+            m_final = FBO.Create(m_dyeResolution.x, m_dyeResolution.y, RenderTextureFormat.ARGBHalf, FilterMode.Bilinear);
+        else
+        {
+            var final = FBO.Create(m_dyeResolution.x, m_dyeResolution.y, RenderTextureFormat.ARGBHalf, FilterMode.Bilinear);
+            m_final.Release();
+            m_final = final;
+        }
+
         m_outputTextures.Clear();
+        AddOutputTexture(m_final, "染料_final");
         AddOutputTexture(m_dye, "染料");
         AddOutputTexture(m_velocity, "速度");
         AddOutputTexture(m_divergence, "散度");
         AddOutputTexture(m_press, "压力");
+        AddOutputTexture(m_sunrayMask, "sunrayMask");
+        AddOutputTexture(m_sunray, "sunray");
         SwitchOutput();
     }
 
@@ -466,6 +555,14 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         m_velocity.Swap();
     }
 
+    void ApplyEjecters()
+    {
+        foreach(var ejecter in m_config.m_ejecters)
+        {
+            AddSource(ejecter.x, ejecter.y, ejecter.dx, ejecter.dy, ejecter.color);
+        }
+    }
+
     void ApplyInput()
     {
         foreach (var pointerData in m_pointerDatas)
@@ -492,6 +589,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
                 }
             }
         }
+        ApplyEjecters();
     }
 
     void Clear(DoubleFBO target, float value)
@@ -506,6 +604,29 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     {
         Clear(m_dye, 0f);
         Clear(m_velocity, 0f);
+        foreach(var ejecter in m_config.m_ejecters)
+        {
+            ejecter.color = GenerateColor();
+        }
+    }
+
+    void SunrayEffects()
+    {
+        m_sunrayMaskMaterial.SetTexture("_Source", m_dye.Read().target);
+        Blit(m_sunrayMask, m_sunrayMaskMaterial);
+
+        m_sunrayMaterial.SetTexture("_Source", m_sunrayMask.target);
+        m_sunrayMaterial.SetFloat("_weight", 1.0f);
+        Blit(m_sunray, m_sunrayMaterial);
+    }
+
+    void PostEffects()
+    {
+        SunrayEffects();
+
+        m_postEffectMaterial.SetTexture("_Source", m_dye.Read().target);
+        m_postEffectMaterial.SetTexture("_sunray", m_sunray.target);
+        Blit(m_final, m_postEffectMaterial);
     }
 
     // Update is called once per frame
@@ -513,6 +634,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     {
         ApplyInput();
         Step();
+        PostEffects();
         if (m_clearFlag)
         {
             m_clearFlag = false;
@@ -521,7 +643,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         EventListerner();
     }
 
-    Color HSV2RGB(float h, float s, float v)
+    public static Color HSV2RGB(float h, float s, float v)
     {
         float r = 0, g = 0, b = 0, i, f, p, q, t;
         i = Mathf.Floor(h * 6);
@@ -543,7 +665,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         return new Color(r, g, b);
     }
 
-    Color GenerateColor()
+    public static Color GenerateColor()
     {
         var c = HSV2RGB(Random.Range(0, 100) / 100.0f, 1.0f, 1.0f);
         c.r *= 0.15f;
@@ -578,8 +700,9 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         pointerData.IsMove = pointerData.deltaX != 0 || pointerData.deltaY != 0;
     }
 
-    void UpdatePointerUpData(PointerData pointerData, float x, float y)
+    void UpdatePointerUpData(PointerData pointerData)
     {
+        pointerData.ID = 999;
         pointerData.IsMove = false;
         pointerData.IsDown = false;
     }
@@ -669,6 +792,21 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
             m_press.Release();
             m_press = null;
         }
+        if (m_sunrayMask != null)
+        {
+            m_sunrayMask.Release();
+            m_sunrayMask = null;
+        }
+        if (m_sunray != null)
+        {
+            m_sunray.Release();
+            m_sunray = null;
+        }
+        if (m_final != null)
+        {
+            m_final.Release();
+            m_final = null;
+        }
     }
 
     private void OnDestroy()
@@ -678,40 +816,47 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     public void OnPointerDown(PointerEventData eventData)
     {
+        var id = eventData.pointerId;
+        var pointer = m_pointerDatas.Find((e) => { return e.ID == 999; });
+        if (pointer == null)
+        {
+            pointer = new PointerData();
+            m_pointerDatas.Add(pointer);
+        }
         var pos = eventData.position;
         //Debug.Log(string.Format("OnPointerDown:{0} id:{1}", pos, eventData.pointerId));
         var mousePos = pos;
         float u = mousePos.x / (float)Screen.width;
         float v = mousePos.y / (float)Screen.height;
-        var pointer = m_pointerDatas[0];
-        var id = eventData.pointerId;
         UpdatePointerDownData(pointer, id, u, v);
 
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
-        var pos = eventData.position;
-        //Debug.Log(string.Format("OnPointerUp:{0} id:{1}", pos, eventData.pointerId));
-        var mousePos = pos;
-        float u = mousePos.x / (float)Screen.width;
-        float v = mousePos.y / (float)Screen.height;
-        var pointer = m_pointerDatas[0];
         var id = eventData.pointerId;
-        if (pointer.ID == id)
-            UpdatePointerUpData(pointer, u, v);
+        var pointer = m_pointerDatas.Find((e) => { return e.ID == id; });
+        if (pointer != null)
+        {
+            UpdatePointerUpData(pointer);
+        }
     }
 
     public void OnPointerMove(PointerEventData eventData)
     {
-        var pos = eventData.position;
-        //Debug.Log(string.Format("OnPointerMove:{0} id:{1}", pos, eventData.pointerId));
-        var mousePos = pos;
-        float u = mousePos.x / (float)Screen.width;
-        float v = mousePos.y / (float)Screen.height;
-        var pointer = m_pointerDatas[0];
         var id = eventData.pointerId;
-        if (pointer.ID == id && pointer.IsDown)
-            UpdatePointerMoveData(pointer, u, v);
+        var pointer = m_pointerDatas.Find((e) => { return e.ID == id; });
+        if (pointer != null)
+        {
+            if (pointer.IsDown)
+            {
+                var pos = eventData.position;
+                //Debug.Log(string.Format("OnPointerMove:{0} id:{1}", pos, eventData.pointerId));
+                var mousePos = pos;
+                float u = mousePos.x / (float)Screen.width;
+                float v = mousePos.y / (float)Screen.height;
+                UpdatePointerMoveData(pointer, u, v);
+            }
+        }
     }
 }
