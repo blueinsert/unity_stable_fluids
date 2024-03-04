@@ -15,6 +15,15 @@ public class Ejecter
     public float dx;
     public float dy;
     public Color color;
+    public float Peroid = 0.2f;
+    public float m_timer;
+    public float radius = 0.01f;
+}
+
+public class SunrayConfig
+{
+    public bool enabled = false;
+    public float weight = 0.5f;
 }
 
 public class FluidConfig
@@ -38,6 +47,8 @@ public class FluidConfig
     public bool Colorful = true;
     public float ColorUpdatePeriod = 0.1f;
 
+    public SunrayConfig SunrayConfig = new SunrayConfig();
+
     public List<Ejecter> m_ejecters = new List<Ejecter>();
 
     public FluidConfig()
@@ -45,35 +56,39 @@ public class FluidConfig
         m_ejecters.Add(new Ejecter()
         {
             x = 0.01f,
-            y = 0.51f,
-            dx = 10,
+            y = 0.72f,
+            dx = 1000,
             dy = 0,
             color = FluidSimulation.GenerateColor(),
+            radius = 0.001f,
+            Peroid = 0.1f,
         });
         m_ejecters.Add(new Ejecter()
         {
             x = 0.99f,
-            y = 0.49f,
-            dx = -10,
+            y = 0.38f,
+            dx = -1000,
             dy = 0,
             color = FluidSimulation.GenerateColor(),
+            radius = 0.001f,
+            Peroid = 0.1f,
         });
-        m_ejecters.Add(new Ejecter()
-        {
-            x = 0.49f,
-            y = 0.01f,
-            dx = 0,
-            dy = 10,
-            color = FluidSimulation.GenerateColor(),
-        });
-        m_ejecters.Add(new Ejecter()
-        {
-            x = 0.51f,
-            y = 0.99f,
-            dx = 0,
-            dy = -10,
-            color = FluidSimulation.GenerateColor(),
-        });
+        //m_ejecters.Add(new Ejecter()
+        //{
+        //    x = 0.38f,
+        //    y = 0.01f,
+        //    dx = 0,
+        //    dy = 10,
+        //    color = FluidSimulation.GenerateColor(),
+        //});
+        //m_ejecters.Add(new Ejecter()
+        //{
+        //    x = 0.72f,
+        //    y = 0.99f,
+        //    dx = 0,
+        //    dy = -10,
+        //    color = FluidSimulation.GenerateColor(),
+        //});
     }
 }
 
@@ -353,13 +368,13 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         }
 
         m_outputTextures.Clear();
-        AddOutputTexture(m_final, "染料_final");
-        AddOutputTexture(m_dye, "染料");
+        AddOutputTexture(m_final, "染料");
+        //AddOutputTexture(m_dye, "染料");
         AddOutputTexture(m_velocity, "速度");
         AddOutputTexture(m_divergence, "散度");
         AddOutputTexture(m_press, "压力");
-        AddOutputTexture(m_sunrayMask, "sunrayMask");
-        AddOutputTexture(m_sunray, "sunray");
+        //AddOutputTexture(m_sunrayMask, "sunrayMask");
+        //AddOutputTexture(m_sunray, "sunray");
         SwitchOutput();
     }
 
@@ -534,18 +549,20 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
             var y = Random.Range(0, 100) / 100f;
             var dx = 1500f * (Random.Range(0, 100) / 100f - 0.5f);
             var dy = 1500f * (Random.Range(0, 100) / 100f - 0.5f);
-            AddSource(x, y, dx, dy, color);
+            float radio = Screen.width / (float)Screen.height;
+            float radius = m_config.SplatRadius / 100f * radio;
+            AddSource(x, y, dx, dy, color, radius);
         }
     }
 
-    void AddSource(float x, float y, float deltaX, float deltaY, Color color)
+    void AddSource(float x, float y, float deltaX, float deltaY, Color color, float radius)
     {
         float radio = Screen.width / (float)Screen.height;
         m_addSourceMaterial.SetTexture("_Source", m_dye.Read().target);
         m_addSourceMaterial.SetFloat("_aspectRadio", radio);
         m_addSourceMaterial.SetVector("_color", new Vector4(color.r, color.g, color.b, color.a));
         m_addSourceMaterial.SetVector("_point", new Vector4(x, y));
-        m_addSourceMaterial.SetFloat("_radius", m_config.SplatRadius / 100f * radio);
+        m_addSourceMaterial.SetFloat("_radius", radius);
         Blit(m_dye.Write(), m_addSourceMaterial);
         m_dye.Swap();
 
@@ -559,7 +576,13 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     {
         foreach(var ejecter in m_config.m_ejecters)
         {
-            AddSource(ejecter.x, ejecter.y, ejecter.dx, ejecter.dy, ejecter.color);
+            ejecter.m_timer += DeltaTime;
+            if(ejecter.m_timer > ejecter.Peroid)
+            {
+                ejecter.m_timer -= ejecter.Peroid;
+                AddSource(ejecter.x, ejecter.y, ejecter.dx, ejecter.dy, ejecter.color,ejecter.radius);
+            }
+            
         }
     }
 
@@ -570,7 +593,9 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
             if (pointerData.IsMove)
             {
                 pointerData.IsMove = false;
-                AddSource(pointerData.x, pointerData.y, pointerData.deltaX * m_config.SplatForce, pointerData.deltaY * m_config.SplatForce, pointerData.color);
+                float radio = Screen.width / (float)Screen.height;
+                float radius = m_config.SplatRadius / 100f * radio;
+                AddSource(pointerData.x, pointerData.y, pointerData.deltaX * m_config.SplatForce, pointerData.deltaY * m_config.SplatForce, pointerData.color, radius);
             }
         }
         if (m_randomSourcePerFrame.Count != 0)
@@ -600,7 +625,13 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         target.Swap();
     }
 
-    void Clear()
+    public void Clear()
+    {
+        if (!m_clearFlag)
+            m_clearFlag = true;
+    }
+
+    void ClearImpl()
     {
         Clear(m_dye, 0f);
         Clear(m_velocity, 0f);
@@ -622,10 +653,15 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     void PostEffects()
     {
-        SunrayEffects();
+        if(m_config.SunrayConfig.enabled)
+            SunrayEffects();
 
         m_postEffectMaterial.SetTexture("_Source", m_dye.Read().target);
         m_postEffectMaterial.SetTexture("_sunray", m_sunray.target);
+        if(m_config.SunrayConfig.enabled)
+            m_postEffectMaterial.EnableKeyword("Sunray");
+        else
+            m_postEffectMaterial.DisableKeyword("Sunray");
         Blit(m_final, m_postEffectMaterial);
     }
 
@@ -638,7 +674,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         if (m_clearFlag)
         {
             m_clearFlag = false;
-            Clear();
+            ClearImpl();
         }
         EventListerner();
     }
@@ -738,31 +774,40 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         //}
         if (Input.GetKeyUp(KeyCode.C))
         {
-            if (!m_clearFlag)
-                m_clearFlag = true;
+            Clear();
         }
         if (Input.GetKeyUp(KeyCode.RightArrow))
         {
-            m_outputIndex++;
-            if (m_outputIndex >= m_outputTextures.Count)
-            {
-                m_outputIndex = 0;
-            }
-            SwitchOutput();
+            LeftSwitchOutput();
         }
         if (Input.GetKeyUp(KeyCode.LeftArrow))
         {
-            m_outputIndex--;
-            if (m_outputIndex < 0)
-            {
-                m_outputIndex = m_outputTextures.Count - 1;
-            }
-            SwitchOutput();
+            RightSwitchOutput();
         }
         if (Input.GetKeyUp(KeyCode.Space))
         {
             m_randomSourcePerFrame.Enqueue((int)(Random.Range(0, 100) / 100f * 25) + 5);
         }
+    }
+
+    public void LeftSwitchOutput()
+    {
+        m_outputIndex--;
+        if (m_outputIndex < 0)
+        {
+            m_outputIndex = m_outputTextures.Count - 1;
+        }
+        SwitchOutput();
+    }
+
+    public void RightSwitchOutput()
+    {
+        m_outputIndex++;
+        if (m_outputIndex >= m_outputTextures.Count)
+        {
+            m_outputIndex = 0;
+        }
+        SwitchOutput();
     }
 
     private void OnRenderObject()

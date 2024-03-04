@@ -95,11 +95,13 @@
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TMP_TextInfoDebugTool.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UISpine2.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
     <None Include="Assets\Shaders\ClearShader.shader" />
     <None Include="Assets\Shaders\DiffuseShader.shader" />
     <None Include="Assets\Shaders\AddSourceShader.shader" />
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UISpine_SepAlpha.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap.shader" />
     <None Include="Assets\Shaders\CopyShader.shader" />
     <None Include="Assets\Shaders\LinSolverShader.shader" />
@@ -108,14 +110,18 @@
     <None Include="Assets\TextMesh Pro\Examples &amp; Extras\Fonts\Anton OFL.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Mobile.cginc" />
     <None Include="Assets\Shaders\BoundShader.shader" />
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UI_AA.shader" />
     <None Include="Assets\Shaders\DisplayShader.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF SSD.shader" />
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UIAdditive.shader" />
     <None Include="Assets\Shaders\SunrayMaskShader.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Surface-Mobile.shader" />
     <None Include="Assets\Shaders\SunrayShader.shader" />
     <None Include="Assets\Shaders\PressGradientSubtractShader.shader" />
     <None Include="Assets\Shaders\DissipateShader.shader" />
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UIGray_AA.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Surface.shader" />
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UISpine2_AA.shader" />
     <None Include="Assets\TextMesh Pro\Sprites\EmojiOne Attribution.txt" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap-Custom-Atlas.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF.shader" />
@@ -124,12 +130,19 @@
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Properties.cginc" />
     <None Include="Assets\TextMesh Pro\Shaders\TMPro_Surface.cginc" />
     <None Include="Assets\Shaders\AdvectShader.shader" />
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UISpine2_SepAlpha.shader" />
     <None Include="Assets\TextMesh Pro\Resources\LineBreaking Following Characters.txt" />
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UIScreenEffect.shader" />
     <None Include="Assets\Shaders\DivergenceShader.shader" />
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UIBackground.shader" />
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UISpine.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Masking.shader" />
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UIAdditive_AA.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF Overlay.shader" />
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UIAlphaOnly.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_Bitmap-Mobile.shader" />
     <None Include="Assets\TextMesh Pro\Fonts\LiberationSans - OFL.txt" />
+    <None Include="Assets\RuntimeAssets\Shader_ABS\UI\UIGray.shader" />
     <None Include="Assets\Shaders\PostEffectShader.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile.shader" />
     <None Include="Assets\TextMesh Pro\Shaders\TMP_Sprite.shader" />

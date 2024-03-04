@@ -51,12 +51,14 @@ Shader "bluebean/StableFluids/PostEffectShader"
 			{
 				float3 c = tex2D(_Source,i.uv).rgb;
 
+#ifdef Sunray
 				float sunray = tex2D(_sunray, i.uv).r;
 				c *= sunray;
+#endif
 
-				float a = max(c.r, max(c.g, c.b));
+				//float a = max(c.r, max(c.g, c.b));
 
-				float4 result = float4(c, a);
+				float4 result = float4(c, 1.0);
 				return result;
 		    }
 		ENDCG
