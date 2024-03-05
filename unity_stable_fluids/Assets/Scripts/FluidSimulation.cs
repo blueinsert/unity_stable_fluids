@@ -61,7 +61,7 @@ public class FluidConfig
             dy = 0,
             color = FluidSimulation.GenerateColor(),
             radius = 0.001f,
-            Peroid = 0.1f,
+            Peroid = 0.05f,
         });
         m_ejecters.Add(new Ejecter()
         {
@@ -71,7 +71,7 @@ public class FluidConfig
             dy = 0,
             color = FluidSimulation.GenerateColor(),
             radius = 0.001f,
-            Peroid = 0.1f,
+            Peroid = 0.05f,
         });
         //m_ejecters.Add(new Ejecter()
         //{
@@ -506,7 +506,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
         m_dissipateMaterial.SetTexture("_Source", source.Read().target);
         m_dissipateMaterial.SetFloat("_dissipation", speed);
         m_dissipateMaterial.SetFloat("_dt", DeltaTime);
-        Debug.Log(string.Format("Dissipate strength:{0} dt:{1}", speed, DeltaTime));
+        //Debug.Log(string.Format("Dissipate strength:{0} dt:{1}", speed, DeltaTime));
         Blit(source.Write(), m_dissipateMaterial);
         source.Swap();
     }

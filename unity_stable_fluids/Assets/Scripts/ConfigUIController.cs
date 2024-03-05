@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ConfigUIController : MonoBehaviour
+public class ConfigUIController : UIControllerBase
 {
     public TMPro.TMP_Dropdown m_velocityResolutionDropDown;
     public TMPro.TMP_Dropdown m_dyeResolutionDropDown;
@@ -27,6 +27,7 @@ public class ConfigUIController : MonoBehaviour
     public Button m_rightButton;
     public Button m_clearButton;
     public Toggle m_sunrayToggle;
+    public Button m_closeButton;
 
     // Start is called before the first frame update
     void Start()
@@ -48,7 +49,7 @@ public class ConfigUIController : MonoBehaviour
         m_rightButton.onClick.AddListener(OnRightButtonClick);
         m_clearButton.onClick.AddListener(OnClearButtonClick);
         m_sunrayToggle.onValueChanged.AddListener(OnSunrayToggleChanged);
-        
+        m_closeButton.onClick.AddListener(OnCloseButtonClick);
     }
 
     private void Init()
@@ -201,5 +202,9 @@ public class ConfigUIController : MonoBehaviour
         FluidSimulation.Instance.m_config.SunrayConfig.enabled = value;
     }
 
+    public void OnCloseButtonClick()
+    {
+        Close();
+    }
     #endregion
 }
