@@ -4,15 +4,21 @@ using UnityEngine;
 
 public class UIControllerBase : MonoBehaviour
 {
-    public virtual void Init(UIIntent intent)
+    public void Init(UIIntent intent)
+    {
+        OnInit(intent);
+    }
+
+    protected virtual void OnInit(UIIntent intent)
     {
 
     }
 
-    public virtual void OnClose() { }
+    protected virtual void OnClose() { }
 
     public void Close()
     {
+        OnClose();
         UIManager.Instance.Close(this);
     }
 }

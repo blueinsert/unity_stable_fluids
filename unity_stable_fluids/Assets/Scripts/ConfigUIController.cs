@@ -52,6 +52,18 @@ public class ConfigUIController : UIControllerBase
         m_closeButton.onClick.AddListener(OnCloseButtonClick);
     }
 
+    protected override void OnClose()
+    {
+        base.OnClose();
+        FluidSimulation.Instance.m_pausing = false;
+    }
+
+    protected override void OnInit(UIIntent intent)
+    {
+        base.OnInit(intent);
+        FluidSimulation.Instance.m_pausing = true;
+    }
+
     private void Init()
     {
         List<string> m_velocityResolutionOptions = new List<string>();

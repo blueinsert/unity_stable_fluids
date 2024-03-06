@@ -95,7 +95,6 @@ public class UIManager : MonoBehaviour
 
     public void Close(UIControllerBase uiCtrl)
     {
-        uiCtrl.OnClose();
         uiCtrl.gameObject.transform.SetParent(this.m_inactiveNode.transform);
     }
 }

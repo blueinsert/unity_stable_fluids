@@ -37,11 +37,15 @@ public class DragableUIControllerBase : UIControllerBase, IDragHandler, IBeginDr
 
     public void OnDrag(PointerEventData eventData)
     {
-        Debug.Log(string.Format("{0} OnDrag", this.gameObject.name));
+        Debug.Log(string.Format("{0} OnDrag {1}", this.gameObject.name, eventData.position));
+        Debug.Log(string.Format("w:{0} h:{1}", Screen.width, Screen.height));
         if (m_isInDraging)
         {
             Vector3 worldPos = Vector3.zero;
-            RectTransformUtility.ScreenPointToWorldPointInRectangle(m_rectTransform, eventData.position, m_camera, out worldPos);
+            Vector2 screenPos = eventData.position;
+            screenPos.x = Mathf.Clamp(screenPos.x, 0, Screen.width);
+            screenPos.y = Mathf.Clamp(screenPos.y, 0, Screen.height);
+            RectTransformUtility.ScreenPointToWorldPointInRectangle(m_rectTransform, screenPos, m_camera, out worldPos);
             var delta = worldPos - m_dragBeginPointerPos;
             var pos = m_dragBeginPos + delta;
             this.transform.position = pos;

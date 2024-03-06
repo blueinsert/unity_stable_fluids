@@ -229,6 +229,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     public List<PointerData> m_pointerDatas = new List<PointerData>();
     public float m_colorUpdateTimer = 0;
     public bool m_clearFlag = false;
+    public bool m_pausing = false;
 
     public const int FrameRate = 60;
     public float DeltaTime
@@ -669,7 +670,10 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
     void Update()
     {
         ApplyInput();
-        Step();
+        if (!m_pausing)
+        {
+            Step();
+        }
         PostEffects();
         if (m_clearFlag)
         {
