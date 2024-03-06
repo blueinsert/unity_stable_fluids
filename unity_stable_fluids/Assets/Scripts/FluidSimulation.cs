@@ -53,26 +53,26 @@ public class FluidConfig
 
     public FluidConfig()
     {
-        m_ejecters.Add(new Ejecter()
-        {
-            x = 0.01f,
-            y = 0.72f,
-            dx = 1000,
-            dy = 0,
-            color = FluidSimulation.GenerateColor(),
-            radius = 0.001f,
-            Peroid = 0.05f,
-        });
-        m_ejecters.Add(new Ejecter()
-        {
-            x = 0.99f,
-            y = 0.38f,
-            dx = -1000,
-            dy = 0,
-            color = FluidSimulation.GenerateColor(),
-            radius = 0.001f,
-            Peroid = 0.05f,
-        });
+        //m_ejecters.Add(new Ejecter()
+        //{
+        //    x = 0.01f,
+        //    y = 0.72f,
+        //    dx = 1000,
+        //    dy = 0,
+        //    color = FluidSimulation.GenerateColor(),
+        //    radius = 0.001f,
+        //    Peroid = 0.05f,
+        //});
+        //m_ejecters.Add(new Ejecter()
+        //{
+        //    x = 0.99f,
+        //    y = 0.38f,
+        //    dx = -1000,
+        //    dy = 0,
+        //    color = FluidSimulation.GenerateColor(),
+        //    radius = 0.001f,
+        //    Peroid = 0.05f,
+        //});
         //m_ejecters.Add(new Ejecter()
         //{
         //    x = 0.38f,

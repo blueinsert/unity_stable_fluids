@@ -21,9 +21,13 @@ public class UIManager : MonoBehaviour
     [SerializeField]
     public List<UIRegisterItem> m_reisterItemList = new List<UIRegisterItem>();
 
+    public GameObject m_inactiveNode;
+
+    private Dictionary<string, UIControllerBase> m_cacheUICtrlDic = new Dictionary<string, UIControllerBase>();
     public void Awake()
     {
         Instance = this;
+        m_inactiveNode.SetActive(false);
     }
 
     private UIRegisterItem GetRegisterItem(string id)
@@ -44,6 +48,18 @@ public class UIManager : MonoBehaviour
         return type;
     }
 
+    public UIControllerBase GetFromCache(string id)
+    {
+        UIControllerBase uiCtrl = null;
+        m_cacheUICtrlDic.TryGetValue(id, out uiCtrl);
+        return uiCtrl;
+    }
+
+    private void Add2Cache(string id,UIControllerBase uiCtrl)
+    {
+        m_cacheUICtrlDic.Add(id, uiCtrl);
+    }
+
     public UIControllerBase Show(UIIntent intent)
     {
         var registerItem = GetRegisterItem(intent.ID);
@@ -52,23 +68,34 @@ public class UIManager : MonoBehaviour
             Debug.Log(string.Format("id: {0} registerItem is null", intent.ID));
             return null;
         }
-        var go = GameObject.Instantiate(registerItem.m_prefab,this.transform,false);
-        //go.transform.SetParent(this.transform);
-        //go.transform.localPosition = Vector3.zero;
-        //go.transform.localScale = Vector3.one;
-        var type = GetType(registerItem.m_controllerClassName);
-        if(type == null)
+        var uiCtrl = GetFromCache(intent.ID);
+        if(uiCtrl == null)
         {
-            Debug.Log(string.Format("id: {0} GetControllerType is null", intent.ID));
-            return null;
-        }
-        var controller = go.GetComponent(type) as UIControllerBase;
-        if (controller  == null)
-        {
+            var go = GameObject.Instantiate(registerItem.m_prefab, this.transform, false);
+            var type = GetType(registerItem.m_controllerClassName);
+            if (type == null)
+            {
+                Debug.Log(string.Format("id: {0} GetControllerType is null", intent.ID));
+                return null;
+            }
+            uiCtrl = go.GetComponent(type) as UIControllerBase;
+            if (uiCtrl == null)
+            {
 
-            controller = go.AddComponent(type) as UIControllerBase;
+                uiCtrl = go.AddComponent(type) as UIControllerBase;
+            }
+            Add2Cache(intent.ID, uiCtrl);
         }
-        controller.Init(intent);
-        return controller;
+
+        uiCtrl.transform.SetParent(this.transform);
+        uiCtrl.transform.SetAsLastSibling();
+        uiCtrl.Init(intent);
+        return uiCtrl;
+    }
+
+    public void Close(UIControllerBase uiCtrl)
+    {
+        uiCtrl.OnClose();
+        uiCtrl.gameObject.transform.SetParent(this.m_inactiveNode.transform);
     }
 }

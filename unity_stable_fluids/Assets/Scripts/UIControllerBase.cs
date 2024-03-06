@@ -9,8 +9,10 @@ public class UIControllerBase : MonoBehaviour
 
     }
 
-    public virtual void Close()
+    public virtual void OnClose() { }
+
+    public void Close()
     {
-        GameObject.Destroy(this.gameObject);
+        UIManager.Instance.Close(this);
     }
 }
