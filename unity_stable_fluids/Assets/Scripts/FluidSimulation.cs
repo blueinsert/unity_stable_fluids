@@ -716,6 +716,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     void UpdatePointerDownData(PointerData pointerData, int id, float x, float y)
     {
+        Debug.Log(string.Format("UpdatePointerDownData id:{0} x:{1} y{2}", id,x,y));
         pointerData.ID = id;
         pointerData.x = x;
         pointerData.y = y;
@@ -730,6 +731,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     void UpdatePointerMoveData(PointerData pointerData, float x, float y)
     {
+        Debug.Log(string.Format("UpdatePointerMoveData id:{0} x:{1} y{2}", pointerData.ID, x, y));
         pointerData.lastX = pointerData.x;
         pointerData.lastY = pointerData.y;
         float radio = Screen.width / (float)Screen.height;
@@ -742,6 +744,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     void UpdatePointerUpData(PointerData pointerData)
     {
+        Debug.Log(string.Format("UpdatePointerUpData id:{0}", pointerData.ID));
         pointerData.ID = 999;
         pointerData.IsMove = false;
         pointerData.IsDown = false;
@@ -865,6 +868,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     public void OnPointerDown(PointerEventData eventData)
     {
+        Debug.Log(string.Format("OnPointerDown:{0} id:{1}", eventData.position, eventData.pointerId));
         var id = eventData.pointerId;
         var pointer = m_pointerDatas.Find((e) => { return e.ID == 999; });
         if (pointer == null)
@@ -873,7 +877,6 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
             m_pointerDatas.Add(pointer);
         }
         var pos = eventData.position;
-        //Debug.Log(string.Format("OnPointerDown:{0} id:{1}", pos, eventData.pointerId));
         var mousePos = pos;
         float u = mousePos.x / (float)Screen.width;
         float v = mousePos.y / (float)Screen.height;
@@ -883,6 +886,8 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     public void OnPointerUp(PointerEventData eventData)
     {
+        Debug.Log(string.Format("OnPointerUp:{0} id:{1}", eventData.position, eventData.pointerId));
+
         var id = eventData.pointerId;
         var pointer = m_pointerDatas.Find((e) => { return e.ID == id; });
         if (pointer != null)
@@ -893,6 +898,7 @@ public class FluidSimulation : MonoBehaviour, IPointerDownHandler, IPointerUpHan
 
     public void OnPointerMove(PointerEventData eventData)
     {
+        Debug.Log(string.Format("OnPointerMove:{0} id:{1}", eventData.position, eventData.pointerId));
         var id = eventData.pointerId;
         var pointer = m_pointerDatas.Find((e) => { return e.ID == id; });
         if (pointer != null)
