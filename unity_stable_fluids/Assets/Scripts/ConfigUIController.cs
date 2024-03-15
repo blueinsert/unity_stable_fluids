@@ -26,7 +26,6 @@ public class ConfigUIController : UIControllerBase
     public Button m_leftButton;
     public Button m_rightButton;
     public Button m_clearButton;
-    public Toggle m_sunrayToggle;
     public Button m_closeButton;
 
     // Start is called before the first frame update
@@ -48,7 +47,6 @@ public class ConfigUIController : UIControllerBase
         m_leftButton.onClick.AddListener(OnLeftButtonClick);
         m_rightButton.onClick.AddListener(OnRightButtonClick);
         m_clearButton.onClick.AddListener(OnClearButtonClick);
-        m_sunrayToggle.onValueChanged.AddListener(OnSunrayToggleChanged);
         m_closeButton.onClick.AddListener(OnCloseButtonClick);
     }
 
@@ -106,7 +104,6 @@ public class ConfigUIController : UIControllerBase
 
         m_colorfulToggle.isOn = FluidSimulation.Instance.m_config.Colorful;
 
-        m_sunrayToggle.isOn = FluidSimulation.Instance.m_config.SunrayConfig.enabled;
     }
 
     // Update is called once per frame
@@ -207,11 +204,6 @@ public class ConfigUIController : UIControllerBase
     public void OnClearButtonClick()
     {
         FluidSimulation.Instance.Clear();
-    }
-
-    public void OnSunrayToggleChanged(bool value)
-    {
-        FluidSimulation.Instance.m_config.SunrayConfig.enabled = value;
     }
 
     public void OnCloseButtonClick()
