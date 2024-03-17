@@ -4,7 +4,7 @@ https://www.josstam.com/
 
 https://www.josstam.com/_files/ugd/cf1fd6_898fe9b63df946689101b8d074f8efba.pdf
 
-This project Allow you to generate fluids effect using mouse draging or touches in handled devices.
+This project Allow you to generate fluids effect using mouse draging or touches in handheld devices.
 
 Here is some examples of effects created by it:
 
